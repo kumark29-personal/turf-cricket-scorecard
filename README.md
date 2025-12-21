@@ -47,9 +47,37 @@ Original version by [Sahil3201/cricket-score](https://github.com/Sahil3201/crick
 - **Refresh Icon**: 🔄 icon in top-right corner for controlled match reset
 - **Refresh Modal**: Two options when clicking refresh icon:
   - "Continue Current Match" - keeps all data
-  - "Start Fresh Match" - clears everything
-- **Bottom Reset Button**: Full-width "🔄 Start Fresh Match" button at page bottom
+  - "Start Fresh Match" - clears everything and saves current match to history
+- **Bottom Buttons**: Two buttons at page bottom (50/50 layout)
+  - "🔄 Start Fresh Match" - saves current match and starts new one
+  - "📋 Past Scorecard" - view saved match history
 - **No Accidental Loss**: Page refresh no longer clears your match data
+
+### 📋 Match History
+
+#### Automatic Match Saving
+- **Auto-Save on Fresh Start**: Current match automatically saved when starting a new match
+- **Sequential Naming**: Matches named as "Match 1", "Match 2", etc.
+- **Smart Saving**: Only saves matches with actual data (won't save empty matches)
+- **Separate Storage**: Uses `cricketMatchHistory` localStorage key (doesn't affect current match)
+
+#### Past Scorecard Viewer
+- **Match List Modal**: Click "📋 Past Scorecard" to view all saved matches
+- **Match Summaries**: Each match shows:
+  - Match name (Match 1, Match 2, etc.)
+  - Final score (e.g., "66/0")
+  - Total overs (e.g., "4.1 overs")
+  - Date and time played
+- **Newest First**: Matches sorted with most recent at top
+- **Empty State**: Helpful message when no matches saved yet
+
+#### Match Details View
+- **Full Scoreboard**: Click any match to view complete details
+- **Match Summary**: Final score, total overs, balls, and timestamp
+- **Over-by-Over Breakdown**: Complete scoreboard table with cumulative totals
+- **Ball-by-Ball Visualization**: Same styled ball circles as current match
+  - Color-coded: Blue (runs), Gray (dot), Yellow (wide), Red (no ball), Black (wicket)
+- **Easy Navigation**: "← Back to List" button to return to match list
 
 ### ↩️ Enhanced Undo Functionality
 
@@ -75,10 +103,11 @@ Original version by [Sahil3201/cricket-score](https://github.com/Sahil3201/crick
 ### 🎯 UI/UX Improvements
 
 #### Button Layout
-- **Optimized Spacing**: 
+- **Top Row Spacing**: 
   - Scoreboard: 40% width
   - Target Mode: 20% width (icon-only 🎯)
   - Undo: 40% width
+- **Bottom Row**: 50/50 split for "Start Fresh Match" and "Past Scorecard"
 - **Target Mode Icon**: Space-saving icon button with mild color
 - **Hidden Share Button**: "Share Match Code" button hidden by default
 
@@ -103,13 +132,17 @@ Original version by [Sahil3201/cricket-score](https://github.com/Sahil3201/crick
 3. View detailed breakdown in "Over Breakdown" section
 4. Click "Scoreboard" to see over-wise totals
 5. Use "Undo" to remove last delivery (including extras)
-6. Click refresh icon or "Start Fresh Match" to reset
+6. Click "Start Fresh Match" to save current match and start new one
+7. Click "Past Scorecard" to view saved match history
+8. Click any saved match to view full details
 
 ## Features Summary
 
 ✅ Ball-by-ball breakdown with circular badges  
 ✅ Extras tracking per ball position  
 ✅ Auto-save to localStorage  
+✅ Match history with automatic saving  
+✅ Past scorecard viewer with full details  
 ✅ Undo support for all delivery types  
 ✅ Over-wise totals in scoreboard  
 ✅ Standard cricket over notation (X.0 format)  

@@ -9,24 +9,28 @@ body,
 .col-left-custom {
 	width: 100%;
 }
+
 .over-ball-style {
 	width: 2rem;
 	height: 2rem;
 }
 
 @media only screen and (orientation: landscape) {
+
 	/* For desktops: */
 	.col-left-custom {
 		width: 70%;
 		float: left;
 		padding: 15px;
 	}
+
 	.col-right-custom {
 		width: 30%;
 		height: 100vh;
 		float: left;
 		padding: 15px;
 	}
+
 	/* .over-ball-style {
 		width: 2em;
 		height: 2em;
@@ -52,9 +56,11 @@ body,
 .btn-custom-lg {
 	height: 4.5em;
 }
+
 .btn-custom-sm {
 	height: 3em;
 }
+
 table {
 	font-family: arial, sans-serif;
 	border-collapse: collapse;
@@ -74,4 +80,164 @@ tr:nth-child(even) {
 
 .material-symbols-outlined {
 	font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 200, "opsz" 24;
+}
+
+/* Modern Match History Styles */
+.match-history-card {
+	border: none !important;
+	border-radius: 20px !important;
+	overflow: hidden;
+	box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08) !important;
+	transition: transform 0.2s ease, box-shadow 0.2s ease;
+	margin-bottom: 24px;
+}
+
+.match-history-card:hover {
+	transform: translateY(-2px);
+	box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12) !important;
+}
+
+.match-history-header {
+	background: linear-gradient(135deg, #0d6efd 0%, #0056b3 100%) !important;
+	color: white !important;
+	padding: 16px 20px !important;
+	border: none !important;
+}
+
+.innings-box {
+	border-radius: 16px;
+	padding: 16px;
+	height: 100%;
+	transition: background-color 0.2s ease;
+}
+
+.innings-box-1 {
+	background-color: #f0f7ff;
+	border: 1px solid #d0e7ff;
+}
+
+.innings-box-2 {
+	background-color: #f0fff4;
+	border: 1px solid #c6f6d5;
+}
+
+.score-display {
+	font-size: 1.8rem;
+	font-weight: 800;
+	margin: 8px 0;
+}
+
+.score-display.text-primary {
+	color: #0d6efd !important;
+}
+
+.score-display.text-success {
+	color: #28a745 !important;
+}
+
+.meta-info {
+	font-size: 0.85rem;
+	color: #6c757d;
+	font-weight: 500;
+}
+
+.btn-modern {
+	border-radius: 12px !important;
+	font-weight: 600 !important;
+	padding: 8px 16px !important;
+	transition: all 0.2s ease !important;
+}
+
+.btn-modern-primary {
+	background-color: #0d6efd !important;
+	color: white !important;
+	border: none !important;
+}
+
+.btn-modern-primary:hover {
+	background-color: #0056b3 !important;
+	box-shadow: 0 4px 12px rgba(13, 110, 253, 0.3) !important;
+}
+
+.btn-modern-outline {
+	background-color: transparent !important;
+	border: 2px solid #0d6efd !important;
+	color: #0d6efd !important;
+}
+
+.btn-modern-outline:hover {
+	background-color: #0d6efd !important;
+	color: white !important;
+}
+
+/* Shared Scorecard Details Styles */
+.ball-circle {
+	display: inline-block;
+	width: 35px;
+	height: 35px;
+	border-radius: 50%;
+	background-color: #0d6efd;
+	color: white;
+	text-align: center;
+	line-height: 35px;
+	margin: 3px;
+	font-weight: bold;
+	position: relative;
+	box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.ball-circle.dot {
+	background-color: #6c757d;
+}
+
+.ball-circle.wicket {
+	background-color: #212529;
+}
+
+.ball-circle.wide {
+	background-color: #ffc107;
+	color: #000;
+}
+
+.ball-circle.noball {
+	background-color: #dc3545;
+}
+
+.extras-badge {
+	position: absolute;
+	top: -8px;
+	right: -8px;
+	background-color: #ff6b6b;
+	color: white;
+	border-radius: 50%;
+	width: 18px;
+	height: 18px;
+	font-size: 10px;
+	line-height: 18px;
+	font-weight: bold;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.scoreboard-table {
+	width: 100%;
+	margin-top: 15px;
+	border-radius: 12px;
+	overflow: hidden;
+	border-collapse: separate;
+	border-spacing: 0;
+	border: 1px solid #dee2e6;
+}
+
+.scoreboard-table th {
+	background-color: #0d6efd;
+	color: white;
+	padding: 12px;
+	font-weight: 600;
+	border: none;
+}
+
+.scoreboard-table td {
+	padding: 10px;
+	border: 1px solid #dee2e6;
+	background-color: #fff;
 }

@@ -12,6 +12,8 @@ var isNoBall = false;
 var isTargetMode = false;
 var targetRuns = -1; // total runs scored by other team
 var targetOvers = -1; //total overs
+var maxOversMode = false; // Track if max overs mode is active
+var maxOvers = -1; // Maximum overs for the innings
 var isShareMode = false;
 
 // localStorage functions for match data persistence
@@ -29,7 +31,9 @@ function saveMatchData() {
 			edited: edited,
 			isTargetMode: isTargetMode,
 			targetRuns: targetRuns,
-			targetOvers: targetOvers
+			targetOvers: targetOvers,
+			maxOversMode: maxOversMode,
+			maxOvers: maxOvers
 		};
 		localStorage.setItem('cricketMatchData', JSON.stringify(matchData));
 	} catch (e) {
@@ -54,14 +58,44 @@ function loadMatchData() {
 			isTargetMode = matchData.isTargetMode || false;
 			targetRuns = matchData.targetRuns || -1;
 			targetOvers = matchData.targetOvers || -1;
+			maxOversMode = matchData.maxOversMode || false;
+			maxOvers = matchData.maxOvers || -1;
 
 			// Update all displays after loading
 			update_score();
 			update_runboard();
 			update_scoreboard();
 			update_statistics();
+			updateMaxOversDisplay();
 			return true;
 		}
+
+		// Check for second innings target data
+		const secondInningsData = localStorage.getItem('secondInningsTarget');
+		if (secondInningsData) {
+			const targetData = JSON.parse(secondInningsData);
+			isTargetMode = targetData.isTargetMode;
+			targetRuns = targetData.targetRuns;
+			targetOvers = targetData.targetOvers;
+
+			// Show target board
+			updateTarget();
+			$("#targetBoard").show();
+			$("#targetModeButton").hide();
+
+			// Hide Max Overs button for second innings
+			$("#maxOversHomeBtn").hide();
+			updateMaxOversDisplay();
+
+			// Clear the second innings target data (one-time use)
+			localStorage.removeItem('secondInningsTarget');
+
+			// Save to current match data so it persists
+			saveMatchData();
+
+			return true;
+		}
+
 		return false;
 	} catch (e) {
 		console.error('Error loading match data:', e);
@@ -71,7 +105,34 @@ function loadMatchData() {
 
 function clearMatchData() {
 	try {
+		// Determine if current match is 2nd innings
+		// Check if we're in target mode AND the last saved match was a 1st innings
+		let inningsType = 'single';
+
+		if (isTargetMode) {
+			const history = JSON.parse(localStorage.getItem('cricketMatchHistory') || '[]');
+			if (history.length > 0) {
+				const lastMatch = history[history.length - 1];
+				// If last match was 1st innings, current match is 2nd innings
+				if (lastMatch.inningsType === '1st') {
+					inningsType = '2nd';
+				}
+			}
+		}
+
+		// Save current match to history before clearing
+		saveMatchToHistory(inningsType);
+
+		// Clear current match data
 		localStorage.removeItem('cricketMatchData');
+
+		// Reset target mode and max overs mode flags
+		isTargetMode = false;
+		targetRuns = -1;
+		targetOvers = -1;
+		maxOversMode = false;
+		maxOvers = -1;
+
 		// Reload page to reset everything
 		location.reload();
 	} catch (e) {
@@ -79,9 +140,493 @@ function clearMatchData() {
 	}
 }
 
+// Match History Functions
+function saveMatchToHistory(inningsType = 'single') {
+	// Only save if there's actual match data
+	if (runs === 0 && ball_no === 1 && over_no === 1) {
+		return; // Nothing to save
+	}
+
+	try {
+		// Get existing history
+		const history = JSON.parse(localStorage.getItem('cricketMatchHistory') || '[]');
+
+		// Generate match name and innings label
+		let matchNumber, matchName, inningsLabel, linkedMatchId = null;
+
+		if (inningsType === '1st') {
+			// For 1st innings, count unique match names to get next number
+			const existingMatches = new Set(history.map(m => m.matchName));
+			matchNumber = existingMatches.size + 1;
+			matchName = `Match ${matchNumber}`;
+			inningsLabel = '1st Innings';
+		} else if (inningsType === '2nd') {
+			// For 2nd innings, use same match number as last entry
+			if (history.length > 0) {
+				const lastMatch = history[history.length - 1];
+				matchName = lastMatch.matchName;
+				linkedMatchId = lastMatch.matchId;
+				inningsLabel = '2nd Innings';
+			} else {
+				matchNumber = 1;
+				matchName = `Match ${matchNumber}`;
+				inningsLabel = '2nd Innings';
+			}
+		} else {
+			// Single innings match - count unique matches
+			const existingMatches = new Set(history.map(m => m.matchName));
+			matchNumber = existingMatches.size + 1;
+			matchName = `Match ${matchNumber}`;
+			inningsLabel = null;
+		}
+
+		// Calculate final score
+		let totalWickets = 0;
+		for (let i = 1; i <= over_no; i++) {
+			if (scoreboard[i]) {
+				scoreboard[i].forEach((element) => {
+					if (element === 'W') totalWickets++;
+				});
+			}
+		}
+
+		// Calculate total balls bowled
+		const totalBalls = (over_no - 1) * 6 + (ball_no - 1);
+		const oversDisplay = Math.floor(totalBalls / 6) + '.' + (totalBalls % 6);
+
+		// Create match object
+		const matchData = {
+			matchId: `match_${Date.now()}`,
+			matchName: matchName,
+			inningsType: inningsType,
+			inningsLabel: inningsLabel,
+			linkedMatchId: linkedMatchId,
+			timestamp: new Date().toISOString(),
+			finalScore: `${runs}/${totalWickets}`,
+			totalOvers: oversDisplay,
+			totalBalls: totalBalls,
+			runs: runs,
+			wickets: totalWickets,
+			scoreboard: scoreboard,
+			ballDetails: ballDetails,
+			widesData: widesData,
+			noBallsData: noBallsData,
+			ballExtras: ballExtras,
+			deliveryHistory: deliveryHistory
+		};
+
+		// Add to history
+		history.push(matchData);
+
+		// Limit to 100 innings (50 matches max) to prevent localStorage overflow
+		if (history.length > 100) {
+			history.shift();
+		}
+
+		// Save to localStorage
+		localStorage.setItem('cricketMatchHistory', JSON.stringify(history));
+
+		console.log('Match saved to history:', matchName, inningsLabel || '');
+	} catch (e) {
+		console.error('Error saving match to history:', e);
+	}
+}
+
+function getMatchHistory() {
+	try {
+		const history = JSON.parse(localStorage.getItem('cricketMatchHistory') || '[]');
+		// Return newest first (create new array to avoid modifying original)
+		return [...history].reverse();
+	} catch (e) {
+		console.error('Error loading match history:', e);
+		return [];
+	}
+}
+
+function getMatchById(matchId) {
+	try {
+		const history = JSON.parse(localStorage.getItem('cricketMatchHistory') || '[]');
+		return history.find(match => match.matchId === matchId);
+	} catch (e) {
+		console.error('Error loading match:', e);
+		return null;
+	}
+}
+
+function showMatchHistory() {
+	const history = getMatchHistory();
+	const modalBody = document.getElementById('historyModalBody');
+
+	if (history.length === 0) {
+		modalBody.innerHTML = `
+			<div class="alert alert-info text-center">
+				<p>No past matches found.</p>
+				<p class="mb-0">Complete a match and click "Start Fresh Match" to save it here.</p>
+			</div>
+		`;
+	} else {
+		// Group matches by matchName
+		const groupedMatches = {};
+		history.forEach((match) => {
+			if (!groupedMatches[match.matchName]) {
+				groupedMatches[match.matchName] = {};
+			}
+			if (match.inningsType === '1st') {
+				groupedMatches[match.matchName].first = match;
+			} else if (match.inningsType === '2nd') {
+				groupedMatches[match.matchName].second = match;
+			} else {
+				// Single innings match
+				groupedMatches[match.matchName].single = match;
+			}
+		});
+
+		let html = '';
+
+		// Display grouped matches (limit to last 2 for modal)
+		const matchNames = Object.keys(groupedMatches);
+		const displayMatches = matchNames.slice(0, 2); // Show only last 2 matches
+		displayMatches.forEach((matchName) => {
+			const matchGroup = groupedMatches[matchName];
+			const leadingMatchId = (matchGroup.single || matchGroup.first || matchGroup.second).matchId;
+
+			html += `<div class="card match-history-card">`;
+			html += `<div class="card-header match-history-header d-flex justify-content-between align-items-center">`;
+			html += `<h5 class="mb-0"><strong>${matchName}</strong></h5>`;
+			html += `<button class="btn btn-sm btn-light btn-modern" style="font-size: 0.75rem;" onclick="downloadMatchPDF('${leadingMatchId}')">📥 PDF Report</button>`;
+			html += `</div>`;
+			html += `<div class="card-body p-4">`;
+
+			if (matchGroup.single) {
+				// Single innings match
+				const match = matchGroup.single;
+				const date = new Date(match.timestamp);
+				const formattedDate = date.toLocaleDateString('en-IN', {
+					day: '2-digit',
+					month: 'short',
+					year: 'numeric',
+					hour: '2-digit',
+					minute: '2-digit'
+				});
+
+				html += `<div class="text-center">`;
+				html += `<div class="score-display text-primary">${match.finalScore}</div>`;
+				html += `<div class="meta-info mb-3">in ${match.totalOvers} overs • ${formattedDate}</div>`;
+				html += `<button class="btn btn-modern btn-modern-outline w-100" onclick="showMatchDetails('${match.matchId}')">`;
+				html += `Details</button>`;
+				html += `</div>`;
+			} else {
+				// Two innings match
+				html += `<div class="row g-3">`;
+
+				// 1st Innings
+				if (matchGroup.first) {
+					const match = matchGroup.first;
+					html += `<div class="col-12 col-md-6">`;
+					html += `<div class="innings-box innings-box-1 text-center">`;
+					html += `<div class="meta-info text-primary">1ST INNINGS</div>`;
+					html += `<div class="score-display text-primary">${match.finalScore}</div>`;
+					html += `<div class="meta-info mb-3">${match.totalOvers} overs</div>`;
+					html += `<button class="btn btn-sm btn-modern btn-modern-outline w-100" onclick="showMatchDetails('${match.matchId}')">`;
+					html += `Details</button>`;
+					html += `</div></div>`;
+				}
+
+				// 2nd Innings
+				if (matchGroup.second) {
+					const match = matchGroup.second;
+					const firstInnings = matchGroup.first;
+
+					// Determine result
+					let resultBadge = '';
+					if (firstInnings) {
+						const firstRuns = firstInnings.runs;
+						const secondRuns = match.runs;
+						if (secondRuns > firstRuns) {
+							resultBadge = '<span class="badge bg-success ms-1">Winner</span>';
+						} else if (secondRuns === firstRuns) {
+							resultBadge = '<span class="badge bg-warning ms-1">Tie</span>';
+						} else {
+							resultBadge = '<span class="badge bg-danger ms-1">Runner Up</span>';
+						}
+					}
+
+					html += `<div class="col-12 col-md-6">`;
+					html += `<div class="innings-box innings-box-2 text-center">`;
+					html += `<div class="meta-info text-success">2ND INNINGS ${resultBadge}</div>`;
+					html += `<div class="score-display text-success">${match.finalScore}</div>`;
+					html += `<div class="meta-info mb-3">${match.totalOvers} overs</div>`;
+					html += `<button class="btn btn-sm btn-modern btn-modern-outline w-100" style="border-color: #28a745; color: #28a745;" onclick="showMatchDetails('${match.matchId}')">`;
+					html += `Details</button>`;
+					html += `</div></div>`;
+				}
+
+				html += `</div>`; // End row
+
+				// Show timestamp for the match
+				if (matchGroup.first || matchGroup.second) {
+					const match = matchGroup.second || matchGroup.first;
+					const date = new Date(match.timestamp);
+					const formattedDate = date.toLocaleDateString('en-IN', {
+						day: '2-digit',
+						month: 'short',
+						year: 'numeric',
+						hour: '2-digit',
+						minute: '2-digit'
+					});
+					html += `<div class="text-center mt-3">`;
+					html += `<div class="meta-info">Played on ${formattedDate}</div>`;
+					html += `</div>`;
+				}
+			}
+
+			html += `</div>`; // End card-body
+			html += `</div>`; // End card
+		});
+
+		// Add "View All Matches" button if there are more than 2 matches
+		if (matchNames.length > 2) {
+			html += `<div class="text-center mt-4">`;
+			html += `<a href="match_history.html" target="_blank" class="btn btn-modern btn-modern-primary btn-lg px-5">`;
+			html += `📋 View Complete History</a>`;
+			html += `</div>`;
+		}
+
+		modalBody.innerHTML = html;
+	}
+
+	// Show the modal
+	$('#historyModal').modal('show');
+}
+
+function showMatchDetails(matchId) {
+	const match = getMatchById(matchId);
+
+	if (!match) {
+		alert('Match not found');
+		return;
+	}
+
+	// Hide history modal and show details modal
+	const historyModal = bootstrap.Modal.getInstance(document.getElementById('historyModal'));
+	if (historyModal) {
+		historyModal.hide();
+	}
+
+	// Set title
+	document.getElementById('matchDetailsTitle').textContent = match.matchName;
+
+	// Build details HTML
+	let html = `
+		<div class="mb-3">
+			<h5>Match Summary</h5>
+			<div class="row">
+				<div class="col-6">
+					<p><strong>Final Score:</strong> ${match.finalScore}</p>
+					<p><strong>Total Overs:</strong> ${match.totalOvers}</p>
+				</div>
+				<div class="col-6">
+					<p><strong>Total Balls:</strong> ${match.totalBalls}</p>
+					<p><strong>Date:</strong> ${new Date(match.timestamp).toLocaleString('en-IN')}</p>
+				</div>
+			</div>
+		</div>
+		
+		<hr>
+		
+		<h5>Scoreboard</h5>
+		<table class="table table-striped table-success">
+			<tr><th>Over</th><th>Score (Extras)</th><th>Total</th></tr>
+	`;
+
+	// Build scoreboard
+	let cumulativeRuns = 0;
+	for (let i = 1; i < match.scoreboard.length; i++) {
+		if (!match.scoreboard[i]) continue;
+
+		html += '<tr>';
+		html += `<td>${i}</td>`;
+		html += `<td>${match.scoreboard[i].slice(1, 7).join(' - ')} (${match.scoreboard[i][0]})</td>`;
+
+		// Calculate over total
+		let numOr0 = (n) => (n == '+' ? 1 : isNaN(n) ? 0 : n);
+		let overTotal = match.scoreboard[i].reduce((a, b) => numOr0(a) + numOr0(b));
+		cumulativeRuns += overTotal;
+
+		html += `<td style='font-weight: bold; color: #0d6efd;'>${cumulativeRuns}</td>`;
+		html += '</tr>';
+	}
+
+	html += '</table>';
+
+	// Add over breakdown if available
+	if (match.ballDetails) {
+		html += '<hr><h5>Over Breakdown</h5>';
+		html += '<div style="max-height: 300px; overflow-y: auto;">';
+
+		for (let i = match.ballDetails.length - 1; i >= 1; i--) {
+			if (!match.ballDetails[i] || match.ballDetails[i].length === 0) continue;
+
+			let styledBalls = match.ballDetails[i].map(ball => {
+				let bgColor, textColor, ballText;
+
+				if (ball === 'Wd') {
+					bgColor = '#ffc107';
+					textColor = '#000';
+					ballText = 'Wd';
+				} else if (ball.includes('NB')) {
+					bgColor = '#dc3545';
+					textColor = '#fff';
+					let runs = ball.split('+')[1];
+					ballText = `<div style="line-height: 1rem; font-size: 0.65rem;">NB<br><span style="font-size: 0.9rem; font-weight: bold;">+${runs}</span></div>`;
+				} else if (ball === '0') {
+					bgColor = '#6c757d';
+					textColor = '#fff';
+					ballText = '•';
+				} else if (ball === 'W') {
+					bgColor = '#000';
+					textColor = '#fff';
+					ballText = 'W';
+				} else {
+					bgColor = '#0d6efd';
+					textColor = '#fff';
+					ballText = ball;
+				}
+
+				return `<span style="display: inline-block; width: 2rem; height: 2rem; line-height: 2rem; text-align: center; border-radius: 50%; background-color: ${bgColor}; color: ${textColor}; font-size: 0.75rem; font-weight: bold; margin: 2px;">${ballText}</span>`;
+			}).join(' ');
+
+			html += `
+				<div style="margin-bottom: 8px; padding: 8px; background-color: #f8f9fa; border-radius: 5px;">
+					<strong style="color: #0d6efd;">Over ${i}:</strong> ${styledBalls}
+				</div>
+			`;
+		}
+
+		html += '</div>';
+	}
+
+	document.getElementById('matchDetailsBody').innerHTML = html;
+
+	// Show details modal
+	setTimeout(() => {
+		const detailsModal = new bootstrap.Modal(document.getElementById('matchDetailsModal'));
+		detailsModal.show();
+	}, 300);
+}
+
+function backToMatchHistory() {
+	// Hide details modal
+	const detailsModal = bootstrap.Modal.getInstance(document.getElementById('matchDetailsModal'));
+	if (detailsModal) {
+		detailsModal.hide();
+	}
+
+	// Show history modal after a short delay
+	setTimeout(() => {
+		const historyModal = new bootstrap.Modal(document.getElementById('historyModal'));
+		historyModal.show();
+	}, 300);
+}
+
+function downloadMatchPDF(matchId) {
+	try {
+		const { jsPDF } = window.jspdf;
+		const doc = new jsPDF();
+		const history = JSON.parse(localStorage.getItem('cricketMatchHistory') || '[]');
+		const match = history.find(m => m.matchId === matchId);
+
+		if (!match) {
+			alert('Match data not found!');
+			return;
+		}
+
+		// Check for linked matches (both innings)
+		let matchesToPrint = [match];
+		if (match.inningsType === '1st' || match.inningsType === '2nd') {
+			const otherMatch = history.find(m =>
+				(m.matchName === match.matchName) &&
+				(m.matchId !== match.matchId) &&
+				(m.inningsType === (match.inningsType === '1st' ? '2nd' : '1st'))
+			);
+			if (otherMatch) {
+				matchesToPrint = match.inningsType === '1st' ? [match, otherMatch] : [otherMatch, match];
+			}
+		}
+
+		let yPos = 20;
+
+		// Header
+		doc.setFontSize(22);
+		doc.setTextColor(13, 110, 253); // #0d6efd
+		doc.text(match.matchName, 105, yPos, { align: 'center' });
+
+		doc.setFontSize(10);
+		doc.setTextColor(100);
+		yPos += 10;
+		doc.text(`Played on: ${new Date(match.timestamp).toLocaleString('en-IN')}`, 105, yPos, { align: 'center' });
+
+		matchesToPrint.forEach((m, index) => {
+			if (index > 0) {
+				yPos = doc.lastAutoTable.finalY + 15;
+				if (yPos > 250) {
+					doc.addPage();
+					yPos = 20;
+				}
+			} else {
+				yPos += 10;
+			}
+
+			doc.setFontSize(16);
+			doc.setTextColor(0);
+			const inningsTitle = m.inningsLabel ? `${m.inningsLabel}: ${m.finalScore}` : `Score: ${m.finalScore}`;
+			doc.text(inningsTitle, 14, yPos);
+
+			yPos += 7;
+			doc.setFontSize(10);
+			doc.text(`Overs: ${m.totalOvers} | Runs: ${m.runs} | Wickets: ${m.wickets}`, 14, yPos);
+
+			// Scoreboard Table
+			const tableData = [];
+			let cumulativeRuns = 0;
+			for (let i = 1; i < m.scoreboard.length; i++) {
+				if (!m.scoreboard[i]) continue;
+
+				let numOr0 = (n) => (n == '+' ? 1 : isNaN(n) ? 0 : n);
+				let overTotal = m.scoreboard[i].reduce((a, b) => numOr0(a) + numOr0(b));
+				cumulativeRuns += overTotal;
+
+				tableData.push([
+					i,
+					`${m.scoreboard[i].slice(1, 7).join(' - ')} (${m.scoreboard[i][0]})`,
+					cumulativeRuns
+				]);
+			}
+
+			doc.autoTable({
+				startY: yPos + 5,
+				head: [['Over', 'Score (Extras)', 'Total']],
+				body: tableData,
+				theme: 'striped',
+				headStyles: { fillColor: m.inningsType === '2nd' ? [40, 167, 69] : [13, 110, 253] }, // Green for 2nd, Blue otherwise
+			});
+
+			yPos = doc.lastAutoTable.finalY;
+		});
+
+		doc.save(`${match.matchName.replace(/\s+/g, '_')}_Scorecard.pdf`);
+	} catch (e) {
+		console.error('Error generating PDF:', e);
+		alert('Error generating PDF. Please ensure all libraries are loaded.');
+	}
+}
+
 $(document).ready(function () {
 	// Load saved match data on page load
 	loadMatchData();
+
+	// Initialize max overs display
+	updateMaxOversDisplay();
 
 	$("#run_dot").on("click", function (event) {
 		play_ball("D", 0);
@@ -221,6 +766,9 @@ function play_ball(run, score = 1) {
 	}
 	update_score();
 	update_scoreboard();
+
+	// Check if max overs are complete
+	checkMaxOversComplete();
 }
 
 function update_runboard() {
@@ -594,6 +1142,202 @@ function noBall(is_NoBall) {
 	}
 }
 
+// Target Modal Control Functions
+function showTargetInputForCurrent() {
+	// Hide options view, show input view
+	$("#targetOptionsView").hide();
+	$("#targetInputView").show();
+	$("#setTargetBtn").show();
+	$("#targetModalTitle").text("Set Target for Current Match");
+}
+
+function showTargetInputForSecondInnings() {
+	// Calculate current match score to pre-fill target
+	const currentRuns = runs;
+	const currentBalls = (over_no - 1) * 6 + (ball_no - 1);
+	const currentOvers = Math.ceil(currentBalls / 6); // Round up to next over
+
+	// Pre-fill target runs (current score + 1) and overs
+	$("#targetRuns").val(currentRuns + 1);
+	$("#targetOvers").val(currentOvers);
+
+	// Hide options view, show input view
+	$("#targetOptionsView").hide();
+	$("#targetInputView").show();
+	$("#startInningsBtn").show();
+	$("#targetModalTitle").text("Start Second Innings");
+}
+
+// Max Overs Functions
+function showMaxOversInput() {
+	// Hide options view, show max overs input view
+	$("#targetOptionsView").hide();
+	$("#maxOversInputView").show();
+	$("#targetInputView").hide();
+	$("#setMaxOversBtn").show();
+	$("#targetModalTitle").text("Set Maximum Overs");
+
+	// Pre-fill with current value if already set
+	if (maxOversMode && maxOvers > 0) {
+		$("#maxOversInput").val(maxOvers);
+	} else {
+		$("#maxOversInput").val("");
+	}
+}
+
+function setMaxOvers() {
+	// Get max overs from input
+	const overs = parseInt($("#maxOversInput").val());
+
+	// Validate input
+	if (isNaN(overs) || overs <= 0) {
+		alert('Please enter a valid number of overs');
+		return;
+	}
+
+	// Set max overs mode
+	maxOversMode = true;
+	maxOvers = overs;
+
+	// Save to match data
+	saveMatchData();
+
+	// Update display
+	updateMaxOversDisplay();
+
+	console.log('Max overs set to:', maxOvers);
+}
+
+function updateMaxOversDisplay() {
+	if (maxOversMode && maxOvers > 0) {
+		// Show the max overs value at the top next to current over
+		$("#maxOversTopValue").text(maxOvers);
+		$("#maxOversTopDisplay").show();
+		$("#maxOversSetButton").hide();
+	} else if (!isTargetMode) {
+		// Show set button above dot ball only for first innings when not set
+		$("#maxOversTopDisplay").hide();
+		$("#maxOversSetButton").show();
+	} else {
+		// Hide both for second innings
+		$("#maxOversTopDisplay").hide();
+		$("#maxOversSetButton").hide();
+	}
+}
+
+function checkMaxOversComplete() {
+	if (!maxOversMode) return;
+
+	// Check if we've completed the max overs
+	// over_no starts at 1, so when over_no > maxOvers, we've completed maxOvers
+	if (over_no > maxOvers) {
+		// Calculate current match score for second innings
+		const currentRuns = runs;
+		const currentOvers = maxOvers;
+
+		let closeButton = '&nbsp;&nbsp;<button type="button" class="btn-close" onClick="setTarget(false)"></button>';
+		let startSecondInningsButton = `&nbsp;&nbsp;<button type="button" class="btn btn-sm btn-success" onclick="prepareSecondInnings(${currentRuns + 1}, ${currentOvers})" style="margin-left: 10px;">🏏 Start Second Innings</button>`;
+
+		updateHtml(
+			"#targetBody",
+			"Over Completed!" + startSecondInningsButton + closeButton
+		);
+
+		// Show the target board with the message
+		$("#targetBoard").show();
+		$("#targetModeButton").show();
+
+		// Disable max overs mode to prevent repeated messages
+		maxOversMode = false;
+	}
+}
+
+function prepareSecondInnings(targetRuns, targetOvers) {
+	// Save 1st innings to history
+	saveMatchToHistory('1st');
+
+	// Save target data to localStorage for restoration after reload
+	const secondInningsData = {
+		isTargetMode: true,
+		targetRuns: targetRuns,
+		targetOvers: targetOvers,
+		isSecondInnings: true
+	};
+	localStorage.setItem('secondInningsTarget', JSON.stringify(secondInningsData));
+
+	// Clear current match data
+	localStorage.removeItem('cricketMatchData');
+
+	// Reload page to start fresh 2nd innings
+	location.reload();
+}
+
+function resetTargetModal() {
+	// Reset modal to initial state
+	$("#targetOptionsView").show();
+	$("#maxOversInputView").hide();
+	$("#targetInputView").hide();
+	$("#setMaxOversBtn").hide();
+	$("#setTargetBtn").hide();
+	$("#startInningsBtn").hide();
+	$("#targetModalTitle").text("Target Mode");
+	$("#maxOversInput").val("");
+	$("#targetRuns").val("");
+	$("#targetOvers").val("");
+}
+
+// Reset modal when it's closed
+$(document).ready(function () {
+	$('#TargetModal').on('hidden.bs.modal', function () {
+		resetTargetModal();
+	});
+});
+
+function setTargetForCurrentMatch() {
+	// Existing functionality - set target for current match
+	isTargetMode = true;
+	targetRuns = parseInt($("#targetRuns").val());
+	targetOvers = parseInt($("#targetOvers").val());
+	updateTarget();
+	$("#targetBoard").show(2500);
+	$("#targetModeButton").hide();
+	publishMessage(
+		JSON.stringify({
+			isTargetMode: isTargetMode,
+		})
+	);
+}
+
+function startSecondInnings() {
+	// Get target values from inputs
+	const secondInningsTarget = parseInt($("#targetRuns").val());
+	const secondInningsOvers = parseInt($("#targetOvers").val());
+
+	// Validate inputs
+	if (isNaN(secondInningsTarget) || isNaN(secondInningsOvers)) {
+		alert('Please enter valid target runs and overs');
+		return;
+	}
+
+	// Save 1st innings to history
+	saveMatchToHistory('1st');
+
+	// Save target data to localStorage for restoration after reload
+	const secondInningsData = {
+		isTargetMode: true,
+		targetRuns: secondInningsTarget,
+		targetOvers: secondInningsOvers,
+		isSecondInnings: true
+	};
+	localStorage.setItem('secondInningsTarget', JSON.stringify(secondInningsData));
+
+	// Clear current match data
+	localStorage.removeItem('cricketMatchData');
+
+	// Reload page to start fresh 2nd innings
+	location.reload();
+}
+
 function setTarget(isTargetModeOn = true) {
 	isTargetMode = isTargetModeOn;
 	if (!isTargetModeOn) {
@@ -621,18 +1365,21 @@ function updateTarget() {
 
 	let closeButton =
 		'&nbsp;&nbsp;<button type="button" class="btn-close" onClick="setTarget(false)"></button>';
+	let newMatchButton =
+		'&nbsp;&nbsp;<button type="button" class="btn btn-sm btn-success" onclick="clearMatchData()" style="margin-left: 10px;">🔄 Start New Match</button>';
+
 	if (ballsLeft == 0) {
 		if (targetRuns < runs) {
 			updateHtml(
 				"#targetBody",
-				"Hurray! The batting team has Won!!" + closeButton
+				"Hurray! The batting team has Won!!" + newMatchButton + closeButton
 			);
 		} else if (targetRuns - 1 == runs) {
-			updateHtml("#targetBody", "Match Over! It's a tie." + closeButton);
+			updateHtml("#targetBody", "Match Over! It's a tie." + newMatchButton + closeButton);
 		} else {
 			updateHtml(
 				"#targetBody",
-				"Hurray! The bowling team has Won!!" + closeButton
+				"Hurray! The bowling team has Won!!" + newMatchButton + closeButton
 			);
 		}
 		$("#targetModeButton").show();
@@ -640,7 +1387,7 @@ function updateTarget() {
 	if (targetRuns <= runs) {
 		updateHtml(
 			"#targetBody",
-			"Hurray! The batting team has Won!!" + closeButton
+			"Hurray! The batting team has Won!!" + newMatchButton + closeButton
 		);
 		$("#targetModeButton").show();
 	}
