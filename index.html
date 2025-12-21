@@ -28,12 +28,13 @@
     <div class="col-left-custom" style="position: relative;">
 
       <!-- Top row: Max Overs and Refresh Icon -->
-      <div class="row no-gutters align-items-center" style="padding: 2px 8px; min-height: 20px;">
-        <div class="col-6" id="maxOversTopDisplay" style="display: none;">
+      <div class="row no-gutters align-items-center justify-content-between"
+        style="padding: 2px 8px; min-height: 20px;">
+        <div class="col-auto" id="maxOversTopDisplay" style="display: none;">
           <span style="font-size: 0.7rem; color: #666;">Max Overs: </span>
           <span id="maxOversTopValue" style="font-size: 0.8rem; font-weight: bold; color: #0d6efd;">-</span>
         </div>
-        <div class="col-6 text-end">
+        <div class="col-auto ms-auto">
           <button type="button" class="btn btn-link" data-bs-toggle="modal" data-bs-target="#refreshModal"
             style="font-size: 1.2rem; padding: 0; text-decoration: none; line-height: 1;" title="New Match">🔄</button>
         </div>
