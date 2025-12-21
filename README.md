@@ -117,6 +117,30 @@ Original version by [Sahil3201/cricket-score](https://github.com/Sahil3201/crick
 - **Milder Colors**: Header background changed to lighter blue (#5b9bd5)
 - **Better Organization**: Clear visual hierarchy
 
+### 🏏 Max Overs Feature
+
+#### Setting Max Overs
+- **Quick Access Button**: "🏏 Max Overs" button on home screen for easy access
+- **Set Max Overs Button**: Appears above dot ball when max overs not set (first innings only)
+- **Simple Input**: Enter maximum overs for the innings
+- **Data Persistence**: Max overs setting saved across page refreshes
+
+#### Max Overs Display
+- **Top Row Display**: Shows "Max Overs: X" in compact top row when set
+- **Auto-Hide**: Only visible during first innings
+- **Clean Layout**: Minimal space usage with refresh icon on the right
+
+#### Over Completion
+- **Automatic Detection**: Checks after each ball if max overs reached
+- **Over Completed Message**: Displays in target board area when overs complete
+- **Start Second Innings**: One-click button to transition to second innings
+- **Auto-Calculate Target**: Automatically sets target runs (first innings score + 1)
+
+#### Second Innings Integration
+- **Seamless Transition**: Saves first innings to history automatically
+- **Target Mode Activation**: Second innings starts with target mode enabled
+- **Hidden Controls**: Max overs button hidden during second innings
+
 ### 🐛 Bug Fixes
 
 #### Ball Count Display
@@ -129,18 +153,21 @@ Original version by [Sahil3201/cricket-score](https://github.com/Sahil3201/crick
 
 1. Open `index.html` in a web browser
 2. Click buttons to record runs, dots, wides, no balls, and wickets
-3. View detailed breakdown in "Over Breakdown" section
-4. Click "Scoreboard" to see over-wise totals
-5. Use "Undo" to remove last delivery (including extras)
-6. Click "Start Fresh Match" to save current match and start new one
-7. Click "Past Scorecard" to view saved match history
-8. Click any saved match to view full details
+3. Set max overs using "🏏 Max Overs" button for limited overs matches
+4. View detailed breakdown in "Over Breakdown" section
+5. Click "Scoreboard" to see over-wise totals
+6. Use "Undo" to remove last delivery (including extras)
+7. Click "Start Fresh Match" to save current match and start new one
+8. Click "Past Scorecard" to view saved match history
+9. Click any saved match to view full details
 
 ## Features Summary
 
 ✅ Ball-by-ball breakdown with circular badges  
 ✅ Extras tracking per ball position  
 ✅ Auto-save to localStorage  
+✅ Max overs feature with automatic over completion detection  
+✅ Seamless first and second innings transition  
 ✅ Match history with automatic saving  
 ✅ Past scorecard viewer with full details  
 ✅ Undo support for all delivery types  

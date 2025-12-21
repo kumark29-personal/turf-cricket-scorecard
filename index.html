@@ -23,17 +23,20 @@
 <body style="background-color:#e5f3ff;">
   <div class="container">
 
+
     <!-- This is the scores on the topmost part of the screen -->
     <div class="col-left-custom" style="position: relative;">
-      <!-- Refresh icon in top right corner -->
-      <button type="button" class="btn btn-link" data-bs-toggle="modal" data-bs-target="#refreshModal"
-        style="position: absolute; top: 5px; right: 5px; font-size: 1.5rem; padding: 0; z-index: 10; text-decoration: none;"
-        title="Refresh Match">🔄</button>
 
-      <!-- Max Overs Display (top left corner) -->
-      <div id="maxOversTopDisplay" style="display: none; position: absolute; top: 8px; left: 8px; z-index: 10;">
-        <div style="font-size: 0.65rem; color: #888; line-height: 1;">Max Overs</div>
-        <div id="maxOversTopValue" style="font-size: 1rem; font-weight: bold; color: #0d6efd; line-height: 1;">-</div>
+      <!-- Top row: Max Overs and Refresh Icon -->
+      <div class="row no-gutters align-items-center" style="padding: 2px 8px; min-height: 20px;">
+        <div class="col-6" id="maxOversTopDisplay" style="display: none;">
+          <span style="font-size: 0.7rem; color: #666;">Max Overs: </span>
+          <span id="maxOversTopValue" style="font-size: 0.8rem; font-weight: bold; color: #0d6efd;">-</span>
+        </div>
+        <div class="col-6 text-end">
+          <button type="button" class="btn btn-link" data-bs-toggle="modal" data-bs-target="#refreshModal"
+            style="font-size: 1.2rem; padding: 0; text-decoration: none; line-height: 1;" title="New Match">🔄</button>
+        </div>
       </div>
 
       <h6 style="text-align:center;">
@@ -149,15 +152,17 @@
           <button class="btn btn-outline-primary btn-custom btn-custom-sm" id="run_W">Wicket</button>
         </div>
 
-        <div class="col-5 my-auto zoom py-4 px-1 run-btn">
+
+        <div class="col-4 my-auto zoom py-4 px-1 run-btn">
           <button type="button" class="btn btn-info btn-custom btn-custom-sm" data-bs-toggle="modal"
             data-bs-target="#myModal" id="scoreboard-btn">Scoreboard</button>
         </div>
-        <div class="col-2 my-auto zoom py-4 px-1 run-btn">
-          <button type="button" class="btn btn-light btn-custom btn-custom-sm" data-bs-toggle="modal"
-            data-bs-target="#TargetModal" id="targetModeButton" title="Target mode">🎯</button>
+        <div class="col-4 my-auto zoom py-4 px-1 run-btn">
+          <button type="button" class="btn btn-custom btn-custom-sm" data-bs-toggle="modal"
+            data-bs-target="#TargetModal" id="targetModeButton" title="Target mode"
+            style="background-color: #3074c9; color: white; border: none;">Target</button>
         </div>
-        <div class="col-5 my-auto zoom py-4 px-1 run-btn">
+        <div class="col-4 my-auto zoom py-4 px-1 run-btn">
           <button type="button" class="btn btn-danger btn-custom btn-custom-sm" data-bs-toggle="modal"
             data-bs-target="#myModal2">Undo</button>
         </div>
