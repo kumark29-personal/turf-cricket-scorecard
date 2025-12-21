@@ -2,10 +2,6 @@
 
 A feature-rich web application to manage a scoreboard for standard cricket matches with advanced tracking and persistence capabilities.
 
-## Credits
-
-Original version by [Sahil3201/cricket-score](https://github.com/Sahil3201/cricket-score)
-
 ## New Features & Enhancements
 
 ### 📊 Enhanced Score Display
@@ -188,3 +184,7 @@ Original version by [Sahil3201/cricket-score](https://github.com/Sahil3201/crick
 ## Browser Compatibility
 
 Works in all modern browsers with localStorage support.
+
+
+## Credits
+Developed and enhanced from this project -> [Sahil3201/cricket-score](https://github.com/Sahil3201/cricket-score)
