@@ -1235,6 +1235,11 @@ function update_scoreboard() {
 }
 
 function update_score() {
+	// Capture start time if not already set (for matches without max overs)
+	if (!matchStartTime) {
+		matchStartTime = Date.now();
+	}
+
 	let score = 0;
 	let wickets = 0;
 
