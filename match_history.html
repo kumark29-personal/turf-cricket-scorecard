@@ -133,11 +133,27 @@
                     if (matchGroup.first) {
                         const match = matchGroup.first;
                         const teamName = match.battingTeamName ? ` (${match.battingTeamName})` : "";
+
+                        // Format timing information
+                        let timingHTML = "";
+                        if (match.startTime && match.endTime) {
+                            const startDate = new Date(match.startTime);
+                            const endDate = new Date(match.endTime);
+                            const startTime = startDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+                            const endTime = endDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+                            const duration = match.duration || Math.round((match.endTime - match.startTime) / 60000);
+                            const hours = Math.floor(duration / 60);
+                            const mins = duration % 60;
+                            const durationText = hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+                            timingHTML = `<div class="meta-info" style="font-size: 0.85rem; color: #666; margin-top: 8px;">⏱️ ${startTime} - ${endTime} (${durationText})</div>`;
+                        }
+
                         html += `<div class="col-12 col-md-6">`;
                         html += `<div class="innings-box innings-box-1 text-center py-4">`;
                         html += `<div class="meta-info text-primary mb-1">1ST INNINGS${teamName}</div>`;
                         html += `<div class="score-display text-primary" style="font-size: 2.5rem;">${match.finalScore}</div>`;
                         html += `<div class="meta-info mb-4">in ${match.totalOvers} overs</div>`;
+                        html += timingHTML;
                         html += `<div class="d-flex gap-2 justify-content-center">`;
                         html += `<button class="btn btn-modern btn-modern-outline px-4" onclick="showMatchDetails('${match.matchId}')">`;
                         html += `Details</button>`;
@@ -165,11 +181,26 @@
                             }
                         }
 
+                        // Format timing information
+                        let timingHTML = "";
+                        if (match.startTime && match.endTime) {
+                            const startDate = new Date(match.startTime);
+                            const endDate = new Date(match.endTime);
+                            const startTime = startDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+                            const endTime = endDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+                            const duration = match.duration || Math.round((match.endTime - match.startTime) / 60000);
+                            const hours = Math.floor(duration / 60);
+                            const mins = duration % 60;
+                            const durationText = hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+                            timingHTML = `<div class="meta-info" style="font-size: 0.85rem; color: #666; margin-top: 8px;">⏱️ ${startTime} - ${endTime} (${durationText})</div>`;
+                        }
+
                         html += `<div class="col-12 col-md-6">`;
                         html += `<div class="innings-box innings-box-2 text-center py-4">`;
                         html += `<div class="meta-info text-success mb-1">2ND INNINGS${teamName} ${resultBadge}</div>`;
                         html += `<div class="score-display text-success" style="font-size: 2.5rem;">${match.finalScore}</div>`;
                         html += `<div class="meta-info mb-4">in ${match.totalOvers} overs</div>`;
+                        html += timingHTML;
                         html += `<div class="d-flex gap-2 justify-content-center">`;
                         html += `<button class="btn btn-modern btn-modern-outline px-4" style="border-color: #28a745; color: #28a745;" onclick="showMatchDetails('${match.matchId}')">`;
                         html += `Details</button>`;
@@ -245,8 +276,8 @@
                 // Clear match history
                 localStorage.removeItem('cricketMatchHistory');
 
-                // Reset match counter
-                localStorage.setItem('matchCounter', '0');
+                // Reset match counter to 0 so next match starts at 1
+                localStorage.setItem('cricketMatchCounter', '0');
 
                 // Reload the page to refresh the display
                 location.reload();

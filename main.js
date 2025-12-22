@@ -7,6 +7,8 @@ var deliveryHistory = []; // Track all deliveries for undo: {type, over, ball, d
 var ball_no = 1; // Ball number will start from 1
 var over_no = 1; // Over number will start from 1
 var runs = 0;
+var wickets = 0;
+var extras = 0;
 var edited = [];
 var isNoBall = false;
 var isTargetMode = false;
@@ -18,27 +20,31 @@ var isShareMode = false;
 var wicketWithRunMode = false; // Track if wicket with run mode is active
 var battingTeamName = ""; // Batting team name
 var bowlingTeamName = ""; // Bowling team name
+var matchStartTime = null; // Timestamp when match/innings starts
+var matchEndTime = null; // Timestamp when match/innings ends
 
 // localStorage functions for match data persistence
 function saveMatchData() {
 	try {
 		const matchData = {
-			scoreboard: scoreboard,
-			widesData: widesData,
-			noBallsData: noBallsData,
-			ballDetails: ballDetails,
-			ballExtras: ballExtras,
-			ball_no: ball_no,
-			over_no: over_no,
-			runs: runs,
-			edited: edited,
-			isTargetMode: isTargetMode,
-			targetRuns: targetRuns,
-			targetOvers: targetOvers,
-			maxOversMode: maxOversMode,
-			maxOvers: maxOvers,
-			battingTeamName: battingTeamName,
-			bowlingTeamName: bowlingTeamName
+			runs,
+			wickets,
+			over_no,
+			ball_no,
+			scoreboard,
+			ballDetails,
+			extras,
+			isTargetMode,
+			targetRuns,
+			targetOvers,
+			maxOversMode,
+			maxOvers,
+			deliveryHistory,
+			battingTeamName,
+			bowlingTeamName,
+			startTime: matchStartTime,
+			endTime: matchEndTime,
+			timestamp: Date.now()
 		};
 		localStorage.setItem('cricketMatchData', JSON.stringify(matchData));
 	} catch (e) {
@@ -46,6 +52,7 @@ function saveMatchData() {
 	}
 }
 
+// Load match data from localStorage
 function loadMatchData() {
 	try {
 		const savedData = localStorage.getItem('cricketMatchData');
@@ -65,8 +72,11 @@ function loadMatchData() {
 			targetOvers = matchData.targetOvers || -1;
 			maxOversMode = matchData.maxOversMode || false;
 			maxOvers = matchData.maxOvers || -1;
+			deliveryHistory = matchData.deliveryHistory || [];
 			battingTeamName = matchData.battingTeamName || "";
 			bowlingTeamName = matchData.bowlingTeamName || "";
+			matchStartTime = matchData.startTime || null;
+			matchEndTime = matchData.endTime || null;
 
 			// Update all displays after loading
 			update_score();
@@ -87,6 +97,8 @@ function loadMatchData() {
 			targetOvers = targetData.targetOvers;
 			battingTeamName = targetData.battingTeamName || "";
 			bowlingTeamName = targetData.bowlingTeamName || "";
+			matchStartTime = targetData.startTime || Date.now(); // Load start time or use current time as fallback
+			matchEndTime = null; // Second innings hasn't ended yet
 
 			// Show target board
 			updateTarget();
@@ -151,6 +163,71 @@ function clearMatchData() {
 	}
 }
 
+// Start fresh match - saves current match and starts new one
+function startFreshMatch() {
+	// Determine innings type based on context
+	let inningsType = 'single';
+
+	// If max overs mode is active and we've completed max overs, save as 1st innings
+	if (maxOversMode && over_no > maxOvers) {
+		inningsType = '1st';
+	}
+	// If in target mode (second innings), save as 2nd innings
+	else if (isTargetMode) {
+		inningsType = '2nd';
+	}
+
+	// Save current match to history with appropriate innings type
+	saveMatchToHistory(inningsType);
+
+	// Clear current match data
+	localStorage.removeItem('cricketMatchData');
+
+	// Clear second innings target data if it exists
+	localStorage.removeItem('secondInningsTarget');
+
+	// Reset timing variables
+	matchStartTime = null;
+	matchEndTime = null;
+
+	// Reload to show empty scorecard
+	location.reload();
+}
+
+// Save and exit - saves match without starting new one
+function saveAndExit() {
+	// Determine innings type based on context
+	let inningsType = 'single';
+
+	// If max overs mode is active and we've completed max overs, save as 1st innings
+	if (maxOversMode && over_no > maxOvers) {
+		inningsType = '1st';
+	}
+	// If in target mode (second innings), save as 2nd innings
+	else if (isTargetMode) {
+		inningsType = '2nd';
+	}
+
+	// Save current match to history with appropriate innings type
+	saveMatchToHistory(inningsType);
+
+	// Clear current match data
+	localStorage.removeItem('cricketMatchData');
+
+	// Clear second innings target data if it exists
+	localStorage.removeItem('secondInningsTarget');
+
+	// Reset timing variables
+	matchStartTime = null;
+	matchEndTime = null;
+
+	// Show success message
+	alert('✅ Match saved successfully! You can now close the app or start a new match.');
+
+	// Reload to show empty scorecard
+	location.reload();
+}
+
 // Match History Functions
 function saveMatchToHistory(inningsType = 'single') {
 	// Only save if there's actual match data
@@ -162,92 +239,73 @@ function saveMatchToHistory(inningsType = 'single') {
 		// Get existing history
 		const history = JSON.parse(localStorage.getItem('cricketMatchHistory') || '[]');
 
-		// Generate match name and innings label
-		let matchNumber, matchName, inningsLabel, linkedMatchId = null;
+		// Get match counter - this counter ALWAYS increments, never reuses numbers
+		let matchCounter = parseInt(localStorage.getItem('cricketMatchCounter') || '0');
 
-		if (inningsType === '1st') {
-			// For 1st innings, get next match number from counter
-			let matchCounter = parseInt(localStorage.getItem('matchCounter') || '0');
+		// Increment counter for new matches (not for second innings)
+		// Counter increments even if matches are deleted to avoid reusing match numbers
+		if (inningsType !== '2nd') {
 			matchCounter++;
-			localStorage.setItem('matchCounter', matchCounter.toString());
-			matchNumber = matchCounter;
-			matchName = `Match ${matchNumber}`;
-			inningsLabel = '1st Innings';
-		} else if (inningsType === '2nd') {
-			// For 2nd innings, use same match number as last entry
+			localStorage.setItem('cricketMatchCounter', matchCounter.toString());
+		}
+
+		// Set end time if not already set
+		if (!matchEndTime) {
+			matchEndTime = Date.now();
+		}
+
+		// Calculate duration in minutes
+		let duration = null;
+		if (matchStartTime && matchEndTime) {
+			duration = Math.round((matchEndTime - matchStartTime) / 60000); // Convert ms to minutes
+		}
+
+		// Determine match name based on innings type
+		let matchName;
+		if (inningsType === '2nd') {
+			// For 2nd innings, get match name from last entry in history
 			if (history.length > 0) {
-				const lastMatch = history[history.length - 1];
-				matchName = lastMatch.matchName;
-				linkedMatchId = lastMatch.matchId;
-				inningsLabel = '2nd Innings';
+				matchName = history[history.length - 1].matchName;
 			} else {
 				// Fallback if no history
-				let matchCounter = parseInt(localStorage.getItem('matchCounter') || '0');
-				matchCounter++;
-				localStorage.setItem('matchCounter', matchCounter.toString());
-				matchNumber = matchCounter;
-				matchName = `Match ${matchNumber}`;
-				inningsLabel = '2nd Innings';
+				matchName = `Match ${matchCounter}`;
 			}
 		} else {
-			// Single innings match - get next match number from counter
-			let matchCounter = parseInt(localStorage.getItem('matchCounter') || '0');
-			matchCounter++;
-			localStorage.setItem('matchCounter', matchCounter.toString());
-			matchNumber = matchCounter;
-			matchName = `Match ${matchNumber}`;
-			inningsLabel = null;
+			matchName = `Match ${matchCounter}`;
 		}
 
-		// Calculate final score
-		let totalWickets = 0;
-		for (let i = 1; i <= over_no; i++) {
-			if (scoreboard[i]) {
-				scoreboard[i].forEach((element) => {
-					if (element === 'W') totalWickets++;
-				});
-			}
-		}
-
-		// Calculate total balls bowled
-		const totalBalls = (over_no - 1) * 6 + (ball_no - 1);
-		const oversDisplay = Math.floor(totalBalls / 6) + '.' + (totalBalls % 6);
-
-		// Create match object
 		const matchData = {
-			matchId: `match_${Date.now()}`,
+			matchId: `match_${Date.now()}_${Math.random()}`,
 			matchName: matchName,
 			inningsType: inningsType,
-			inningsLabel: inningsLabel,
-			linkedMatchId: linkedMatchId,
-			timestamp: new Date().toISOString(),
-			finalScore: `${runs}/${totalWickets}`,
-			totalOvers: oversDisplay,
-			totalBalls: totalBalls,
-			runs: runs,
-			wickets: totalWickets,
-			scoreboard: scoreboard,
-			ballDetails: ballDetails,
-			widesData: widesData,
-			noBallsData: noBallsData,
-			ballExtras: ballExtras,
-			deliveryHistory: deliveryHistory,
-			battingTeamName: battingTeamName,
-			bowlingTeamName: bowlingTeamName
+			inningsLabel: inningsType === '1st' ? '1st Innings' : (inningsType === '2nd' ? '2nd Innings' : null),
+			runs,
+			wickets,
+			scoreboard,
+			ballDetails,
+			extras,
+			finalScore: `${runs}/${wickets}`,
+			totalOvers: `${over_no - 1}.${ball_no - 1}`,
+			timestamp: Date.now(),
+			battingTeamName,
+			bowlingTeamName,
+			startTime: matchStartTime,
+			endTime: matchEndTime,
+			duration: duration // Duration in minutes
 		};
 
 		// Add to history
 		history.push(matchData);
 
-		// Limit to 40 innings (20 matches max) to prevent localStorage overflow
-		if (history.length > 40) {
+		// Limit to 50 matches to prevent localStorage overflow
+		if (history.length > 50) {
 			history.shift();
 		}
 
 		// Save to localStorage
 		localStorage.setItem('cricketMatchHistory', JSON.stringify(history));
 
-		console.log('Match saved to history:', matchName, inningsLabel || '');
+		console.log('Match saved to history:', matchData.matchName, matchData.inningsLabel || '');
 	} catch (e) {
 		console.error('Error saving match to history:', e);
 	}
@@ -666,6 +724,22 @@ function downloadMatchPDF(matchId) {
 			yPos += 7;
 			doc.setFontSize(10);
 			doc.text(`Overs: ${m.totalOvers} | Runs: ${m.runs} | Wickets: ${m.wickets}`, 14, yPos);
+
+			// Add timing information if available
+			if (m.startTime && m.endTime) {
+				yPos += 5;
+				const startDate = new Date(m.startTime);
+				const endDate = new Date(m.endTime);
+				const startTime = startDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+				const endTime = endDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+				const duration = m.duration || Math.round((m.endTime - m.startTime) / 60000);
+				const hours = Math.floor(duration / 60);
+				const mins = duration % 60;
+				const durationText = hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+				doc.setTextColor(100);
+				doc.text(`Time: ${startTime} - ${endTime} (Duration: ${durationText})`, 14, yPos);
+				doc.setTextColor(0);
+			}
 
 			// Scoreboard Table
 			const tableData = [];
@@ -1424,13 +1498,26 @@ function setMaxOvers() {
 		return;
 	}
 
-	// Capture team names (optional)
-	battingTeamName = $("#battingTeamInput").val().trim();
-	bowlingTeamName = $("#bowlingTeamInput").val().trim();
+	// Capture team names (optional) - only update if new values provided
+	const newBattingTeam = $("#battingTeamInput").val().trim();
+	const newBowlingTeam = $("#bowlingTeamInput").val().trim();
+
+	// Only update if user entered something, otherwise keep existing values
+	if (newBattingTeam) {
+		battingTeamName = newBattingTeam;
+	}
+	if (newBowlingTeam) {
+		bowlingTeamName = newBowlingTeam;
+	}
 
 	// Set max overs mode
 	maxOversMode = true;
 	maxOvers = overs;
+
+	// Capture start time if not already set (first time setting max overs)
+	if (!matchStartTime) {
+		matchStartTime = Date.now();
+	}
 
 	// Save to match data
 	saveMatchData();
@@ -1532,10 +1619,18 @@ function checkMaxOversComplete() {
 		let closeButton = '&nbsp;&nbsp;<button type="button" class="btn-close" onClick="setTarget(false)"></button>';
 		let startSecondInningsButton = `&nbsp;&nbsp;<button type="button" class="btn btn-sm btn-success" onclick="prepareSecondInnings(${currentRuns + 1}, ${currentOvers})" style="margin-left: 10px;">🏏 Start Second Innings</button>`;
 
-		updateHtml(
-			"#targetBody",
-			"Over Completed!" + startSecondInningsButton + closeButton
-		);
+		$("#targetBody").html(`
+			<div style="text-align: center; padding: 20px;">
+				<h4 style="color: #0d6efd; margin-bottom: 15px;">✅ Over Completed!</h4>
+				<p style="margin-bottom: 20px;">First innings complete. Ready to start second innings?</p>
+				<div class="d-flex gap-3 justify-content-center">
+					<button class="btn btn-success btn-lg" onclick="saveAndExit()" style="min-width: 180px;">💾 Save & Exit</button>
+					<button class="btn btn-primary btn-lg" onclick="prepareSecondInnings(${currentRuns + 1}, ${currentOvers})" style="min-width: 180px;">
+						🏏 Start 2nd Innings
+					</button>
+				</div>
+			</div>
+		`);
 
 		// Show the target board with the message
 		$("#targetBoard").css("display", "block"); // Override !important to show message
@@ -1628,6 +1723,9 @@ function startSecondInnings() {
 	battingTeamName = bowlingTeamName;
 	bowlingTeamName = temp;
 
+	// Capture start time for second innings
+	const secondInningsStartTime = Date.now();
+
 	// Save target data to localStorage for restoration after reload
 	const secondInningsData = {
 		isTargetMode: true,
@@ -1635,12 +1733,15 @@ function startSecondInnings() {
 		targetOvers: secondInningsOvers,
 		isSecondInnings: true,
 		battingTeamName: battingTeamName,
-		bowlingTeamName: bowlingTeamName
+		bowlingTeamName: bowlingTeamName,
+		startTime: secondInningsStartTime // Save start time
 	};
 	localStorage.setItem('secondInningsTarget', JSON.stringify(secondInningsData));
 
-	// Clear current match data
+	// Clear current match data and reset timing for second innings
 	localStorage.removeItem('cricketMatchData');
+	matchStartTime = secondInningsStartTime; // Set start time (will be lost on reload but saved in secondInningsData)
+	matchEndTime = null; // Clear end time
 
 	// Reload page to start fresh 2nd innings
 	location.reload();
@@ -1682,40 +1783,62 @@ function updateTarget() {
 
 	// Update old targetBoard display
 	updateHtml("#targetRunsRequired", runsRequired);
-	updateHtml("#targetOversLeft", ballsLeft);
-
-	let closeButton =
-		'&nbsp;&nbsp;<button type="button" class="btn-close" onClick="setTarget(false)"></button>';
-	let newMatchButton =
-		'&nbsp;&nbsp;<button type="button" class="btn btn-sm btn-success" onclick="clearMatchData()" style="margin-left: 10px;">🔄 Start New Match</button>';
-
 	if (ballsLeft == 0) {
-		if (targetRuns < runs) {
-			updateHtml(
-				"#targetBody",
-				"Hurray! The batting team has Won!!" + newMatchButton + closeButton
-			);
-		} else if (targetRuns - 1 == runs) {
-			updateHtml("#targetBody", "Match Over! It's a tie." + newMatchButton + closeButton);
+		// targetRuns is the score to beat (first innings + 1)
+		// So first innings score is targetRuns - 1
+		const firstInningsScore = targetRuns - 1;
+
+		if (runs > firstInningsScore) {
+			$("#targetBody").html(`
+				<div style="text-align: center; padding: 20px;">
+					<h3 style="color: #28a745; margin-bottom: 20px;">🎉 Hurray! The batting team has Won!! 🎉</h3>
+					<div class="d-flex gap-3 justify-content-center">
+						<button class="btn btn-success btn-lg" onclick="saveAndExit()" style="min-width: 180px;">💾 Save & Exit</button>
+						<button class="btn btn-primary btn-lg" onclick="startFreshMatch()" style="min-width: 180px;">🔄 Start New Match</button>
+					</div>
+				</div>
+			`);
+			$("#targetBoard").css("display", "block"); // Override !important to show message
+		} else if (runs == firstInningsScore) {
+			$("#targetBody").html(`
+				<div style="text-align: center; padding: 20px;">
+					<h3 style="color: #ffc107; margin-bottom: 20px;">🤝 It's a Tie!! 🤝</h3>
+					<div class="d-flex gap-3 justify-content-center">
+						<button class="btn btn-success btn-lg" onclick="saveAndExit()" style="min-width: 180px;">💾 Save & Exit</button>
+						<button class="btn btn-warning btn-lg" onclick="startFreshMatch()" style="min-width: 180px;">🔄 Start New Match</button>
+					</div>
+				</div>
+			`);
+			$("#targetBoard").css("display", "block"); // Override !important to show message
 		} else {
-			updateHtml(
-				"#targetBody",
-				"Hurray! The bowling team has Won!!" + newMatchButton + closeButton
-			);
+			$("#targetBody").html(`
+				<div style="text-align: center; padding: 20px;">
+					<h3 style="color: #dc3545; margin-bottom: 20px;">😔 The batting team has Lost! 😔</h3>
+					<div class="d-flex gap-3 justify-content-center">
+						<button class="btn btn-success btn-lg" onclick="saveAndExit()" style="min-width: 180px;">💾 Save & Exit</button>
+						<button class="btn btn-danger btn-lg" onclick="startFreshMatch()" style="min-width: 180px;">🔄 Start New Match</button>
+					</div>
+				</div>
+			`);
+			$("#targetBoard").css("display", "block"); // Override !important to show message
 		}
 		$("#targetBoard").css("display", "block"); // Override !important to show result
 		$("#targetModeButton").show();
 		// Hide target display from top bar when match is over
 		$("#targetTopDisplay").hide();
-	}
-	if (targetRuns <= runs) {
-		updateHtml(
-			"#targetBody",
-			"Hurray! The batting team has Won!!" + newMatchButton + closeButton
-		);
-		$("#targetBoard").css("display", "block"); // Override !important to show result
+	} else if (runsRequired <= 0) {
+		// This means the batting team has already surpassed the target before all balls are played
+		$("#targetBody").html(`
+			<div style="text-align: center; padding: 20px;">
+				<h3 style="color: #28a745; margin-bottom: 20px;">🎉 Hurray! The batting team has Won!! 🎉</h3>
+				<div class="d-flex gap-3 justify-content-center">
+					<button class="btn btn-success btn-lg" onclick="saveAndExit()" style="min-width: 180px;">💾 Save & Exit</button>
+					<button class="btn btn-primary btn-lg" onclick="startFreshMatch()" style="min-width: 180px;">🔄 Start New Match</button>
+				</div>
+			</div>
+		`);
+		$("#targetBoard").css("display", "block"); // Override !important to show message
 		$("#targetModeButton").show();
-		// Hide target display from top bar when match is over
 		$("#targetTopDisplay").hide();
 	}
 }

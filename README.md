@@ -77,6 +77,30 @@ A feature-rich web application to manage a scoreboard for standard cricket match
 - **Bordered Box**: Team name box has border and background for visibility
 - **White Text**: Team names in modal headers use white color for readability
 
+### 💾 Save & Exit Feature
+
+#### Match Completion Options
+- **Two-Button Choice**: When a match ends, users get two options:
+  - **Save & Exit**: Saves the match to history and returns to empty scorecard
+  - **Start New Match**: Saves the match and immediately starts a fresh match
+- **Available For All Outcomes**: Both buttons appear for:
+  - Match won (batting team wins)
+  - Match lost (batting team loses)
+  - Match tied (scores are equal)
+  - Over completed (first innings done, ready for second innings)
+
+#### Smart Innings Detection
+- **Automatic Context Detection**: System automatically determines innings type:
+  - Max overs completed → Saves as "1st Innings"
+  - Target mode active → Saves as "2nd Innings"
+  - Normal match → Saves as "Single Innings"
+- **Proper Match Linking**: First and second innings are correctly linked in match history
+
+#### User Benefits
+- **No Forced Actions**: Users can save and exit without being forced to start a new match
+- **Clear Intent**: Separate buttons make user's intention clear
+- **Data Safety**: Match is always saved before exiting or starting new match
+
 ### 📋 Match History
 
 #### Automatic Match Saving
