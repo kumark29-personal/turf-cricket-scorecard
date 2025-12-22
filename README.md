@@ -49,6 +49,34 @@ A feature-rich web application to manage a scoreboard for standard cricket match
   - "📋 Past Scorecard" - view saved match history
 - **No Accidental Loss**: Page refresh no longer clears your match data
 
+### 🏏 Team Names Feature
+
+#### Team Name Input
+- **Optional Fields**: Add batting and bowling team names when setting max overs
+- **Always Accessible**: Can add or edit team names anytime during the match
+- **Top Left Display**: Shows first 2 characters of batting team (e.g., "MI" for Mumbai Indians)
+- **Click to Edit**: Click team name box to view/edit full team names
+- **Placeholder Display**: Shows "--" when no team name is set
+
+#### Second Innings Integration
+- **Auto-Swap**: Team names automatically swap when starting second innings
+- **Persistent**: Team names saved and loaded correctly across page refreshes
+- **Pre-filled**: Team names from first innings auto-populate in second innings setup
+
+#### Display Locations
+- **Top Row**: Team name box in top left corner (always visible, clickable)
+- **Match History Modal**: Team names shown below match number and next to innings labels
+  - Header: "Match 9" with "SS vs KK" below
+  - Innings: "1ST INNINGS (SS)" and "2ND INNINGS (KK) Winner"
+- **Match History Page**: Team names displayed in card headers and innings labels
+- **PDF Reports**: Team names in header and next to innings labels
+
+#### UI Refinements
+- **Centered Displays**: Max overs and target displays centered for better layout
+- **Clickable Max Overs**: Click max overs display to edit it along with team names
+- **Bordered Box**: Team name box has border and background for visibility
+- **White Text**: Team names in modal headers use white color for readability
+
 ### 📋 Match History
 
 #### Automatic Match Saving

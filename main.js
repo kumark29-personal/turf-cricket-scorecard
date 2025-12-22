@@ -16,6 +16,8 @@ var maxOversMode = false; // Track if max overs mode is active
 var maxOvers = -1; // Maximum overs for the innings
 var isShareMode = false;
 var wicketWithRunMode = false; // Track if wicket with run mode is active
+var battingTeamName = ""; // Batting team name
+var bowlingTeamName = ""; // Bowling team name
 
 // localStorage functions for match data persistence
 function saveMatchData() {
@@ -34,7 +36,9 @@ function saveMatchData() {
 			targetRuns: targetRuns,
 			targetOvers: targetOvers,
 			maxOversMode: maxOversMode,
-			maxOvers: maxOvers
+			maxOvers: maxOvers,
+			battingTeamName: battingTeamName,
+			bowlingTeamName: bowlingTeamName
 		};
 		localStorage.setItem('cricketMatchData', JSON.stringify(matchData));
 	} catch (e) {
@@ -61,6 +65,8 @@ function loadMatchData() {
 			targetOvers = matchData.targetOvers || -1;
 			maxOversMode = matchData.maxOversMode || false;
 			maxOvers = matchData.maxOvers || -1;
+			battingTeamName = matchData.battingTeamName || "";
+			bowlingTeamName = matchData.bowlingTeamName || "";
 
 			// Update all displays after loading
 			update_score();
@@ -68,6 +74,7 @@ function loadMatchData() {
 			update_scoreboard();
 			update_statistics();
 			updateMaxOversDisplay();
+			updateTeamDisplay();
 			return true;
 		}
 
@@ -78,6 +85,8 @@ function loadMatchData() {
 			isTargetMode = targetData.isTargetMode;
 			targetRuns = targetData.targetRuns;
 			targetOvers = targetData.targetOvers;
+			battingTeamName = targetData.battingTeamName || "";
+			bowlingTeamName = targetData.bowlingTeamName || "";
 
 			// Show target board
 			updateTarget();
@@ -87,6 +96,7 @@ function loadMatchData() {
 			// Hide Max Overs button for second innings
 			$("#maxOversHomeBtn").hide();
 			updateMaxOversDisplay();
+			updateTeamDisplay();
 
 			// Clear the second innings target data (one-time use)
 			localStorage.removeItem('secondInningsTarget');
@@ -221,7 +231,9 @@ function saveMatchToHistory(inningsType = 'single') {
 			widesData: widesData,
 			noBallsData: noBallsData,
 			ballExtras: ballExtras,
-			deliveryHistory: deliveryHistory
+			deliveryHistory: deliveryHistory,
+			battingTeamName: battingTeamName,
+			bowlingTeamName: bowlingTeamName
 		};
 
 		// Add to history
@@ -307,9 +319,22 @@ function showMatchHistory() {
 			const matchGroup = groupedMatches[matchName];
 			const leadingMatchId = (matchGroup.single || matchGroup.first || matchGroup.second).matchId;
 
+			// Get team names from the match (prefer second innings, fallback to first, then single)
+			const matchData = matchGroup.second || matchGroup.first || matchGroup.single;
+			const battingTeam = matchData.battingTeamName || "";
+			const bowlingTeam = matchData.bowlingTeamName || "";
+
+			// Create team names display
+			let teamNamesDisplay = "";
+			if (battingTeam && bowlingTeam) {
+				teamNamesDisplay = `<div style="font-size: 0.85rem; color: rgba(255,255,255,0.9); margin-top: 4px;">${battingTeam} vs ${bowlingTeam}</div>`;
+			} else if (battingTeam || bowlingTeam) {
+				teamNamesDisplay = `<div style="font-size: 0.85rem; color: rgba(255,255,255,0.9); margin-top: 4px;">${battingTeam || bowlingTeam}</div>`;
+			}
+
 			html += `<div class="card match-history-card">`;
 			html += `<div class="card-header match-history-header d-flex justify-content-between align-items-center">`;
-			html += `<h5 class="mb-0"><strong>${matchName}</strong></h5>`;
+			html += `<div><h5 class="mb-0"><strong>${matchName}</strong></h5>${teamNamesDisplay}</div>`;
 			html += `<button class="btn btn-sm btn-light btn-modern" style="font-size: 0.75rem;" onclick="downloadMatchPDF('${leadingMatchId}')">📥 PDF Report</button>`;
 			html += `</div>`;
 			html += `<div class="card-body p-4">`;
@@ -339,9 +364,10 @@ function showMatchHistory() {
 				// 1st Innings
 				if (matchGroup.first) {
 					const match = matchGroup.first;
+					const teamName = match.battingTeamName ? ` (${match.battingTeamName})` : "";
 					html += `<div class="col-12 col-md-6">`;
 					html += `<div class="innings-box innings-box-1 text-center">`;
-					html += `<div class="meta-info text-primary">1ST INNINGS</div>`;
+					html += `<div class="meta-info text-primary">1ST INNINGS${teamName}</div>`;
 					html += `<div class="score-display text-primary">${match.finalScore}</div>`;
 					html += `<div class="meta-info mb-3">${match.totalOvers} overs</div>`;
 					html += `<button class="btn btn-sm btn-modern btn-modern-outline w-100" onclick="showMatchDetails('${match.matchId}')">`;
@@ -353,6 +379,7 @@ function showMatchHistory() {
 				if (matchGroup.second) {
 					const match = matchGroup.second;
 					const firstInnings = matchGroup.first;
+					const teamName = match.battingTeamName ? ` (${match.battingTeamName})` : "";
 
 					// Determine result
 					let resultBadge = '';
@@ -370,7 +397,7 @@ function showMatchHistory() {
 
 					html += `<div class="col-12 col-md-6">`;
 					html += `<div class="innings-box innings-box-2 text-center">`;
-					html += `<div class="meta-info text-success">2ND INNINGS ${resultBadge}</div>`;
+					html += `<div class="meta-info text-success">2ND INNINGS${teamName} ${resultBadge}</div>`;
 					html += `<div class="score-display text-success">${match.finalScore}</div>`;
 					html += `<div class="meta-info mb-3">${match.totalOvers} overs</div>`;
 					html += `<button class="btn btn-sm btn-modern btn-modern-outline w-100" style="border-color: #28a745; color: #28a745;" onclick="showMatchDetails('${match.matchId}')">`;
@@ -603,6 +630,17 @@ function downloadMatchPDF(matchId) {
 		doc.setTextColor(13, 110, 253); // #0d6efd
 		doc.text(match.matchName, 105, yPos, { align: 'center' });
 
+		// Add team names if available
+		if (match.battingTeamName || match.bowlingTeamName) {
+			doc.setFontSize(12);
+			doc.setTextColor(100);
+			yPos += 8;
+			const teamText = match.battingTeamName && match.bowlingTeamName
+				? `${match.battingTeamName} vs ${match.bowlingTeamName}`
+				: (match.battingTeamName || match.bowlingTeamName);
+			doc.text(teamText, 105, yPos, { align: 'center' });
+		}
+
 		doc.setFontSize(10);
 		doc.setTextColor(100);
 		yPos += 10;
@@ -621,7 +659,8 @@ function downloadMatchPDF(matchId) {
 
 			doc.setFontSize(16);
 			doc.setTextColor(0);
-			const inningsTitle = m.inningsLabel ? `${m.inningsLabel}: ${m.finalScore}` : `Score: ${m.finalScore}`;
+			const teamName = m.battingTeamName ? ` (${m.battingTeamName})` : "";
+			const inningsTitle = m.inningsLabel ? `${m.inningsLabel}${teamName}: ${m.finalScore}` : `Score: ${m.finalScore}`;
 			doc.text(inningsTitle, 14, yPos);
 
 			yPos += 7;
@@ -1385,6 +1424,10 @@ function setMaxOvers() {
 		return;
 	}
 
+	// Capture team names (optional)
+	battingTeamName = $("#battingTeamInput").val().trim();
+	bowlingTeamName = $("#bowlingTeamInput").val().trim();
+
 	// Set max overs mode
 	maxOversMode = true;
 	maxOvers = overs;
@@ -1392,10 +1435,12 @@ function setMaxOvers() {
 	// Save to match data
 	saveMatchData();
 
-	// Update display
+	// Update displays
 	updateMaxOversDisplay();
+	updateTeamDisplay();
 
 	console.log('Max overs set to:', maxOvers);
+	console.log('Team names:', battingTeamName, 'vs', bowlingTeamName);
 }
 
 function updateMaxOversDisplay() {
@@ -1413,6 +1458,65 @@ function updateMaxOversDisplay() {
 		$("#maxOversTopDisplay").hide();
 		$("#maxOversSetButton").hide();
 	}
+}
+
+// Update team name display
+function updateTeamDisplay() {
+	// Always show the team name display
+	if (battingTeamName) {
+		// Show first 2 characters
+		const shortName = battingTeamName.substring(0, 2).toUpperCase();
+		$("#teamNameShort").text(shortName);
+	} else {
+		// Show placeholder when no team name
+		$("#teamNameShort").text("--");
+	}
+	// Always visible so users can click to add/edit
+	$("#teamNameDisplay").show();
+}
+
+// Show team edit modal
+function showTeamEditModal() {
+	// Pre-fill current names
+	$("#editBattingTeamInput").val(battingTeamName);
+	$("#editBowlingTeamInput").val(bowlingTeamName);
+
+	// Show modal
+	const modal = new bootstrap.Modal(document.getElementById('teamEditModal'));
+	modal.show();
+}
+
+// Save edited team names
+function saveTeamNames() {
+	battingTeamName = $("#editBattingTeamInput").val().trim();
+	bowlingTeamName = $("#editBowlingTeamInput").val().trim();
+
+	// Update display
+	updateTeamDisplay();
+
+	// Save to localStorage
+	saveMatchData();
+
+	// Close modal
+	bootstrap.Modal.getInstance(document.getElementById('teamEditModal')).hide();
+}
+
+// Show max overs edit modal
+function showMaxOversEditModal() {
+	// Pre-fill current max overs
+	$("#maxOversInput").val(maxOvers);
+	$("#battingTeamInput").val(battingTeamName);
+	$("#bowlingTeamInput").val(bowlingTeamName);
+
+	// Show the target modal in max overs mode
+	$("#targetOptionsView").hide();
+	$("#maxOversInputView").show();
+	$("#setMaxOversBtn").show();
+	$("#targetModalTitle").text("Edit Max Overs & Teams");
+
+	// Show modal
+	const modal = new bootstrap.Modal(document.getElementById('TargetModal'));
+	modal.show();
 }
 
 function checkMaxOversComplete() {
@@ -1446,12 +1550,19 @@ function prepareSecondInnings(targetRuns, targetOvers) {
 	// Save 1st innings to history
 	saveMatchToHistory('1st');
 
+	// Swap team names for second innings (batting becomes bowling and vice versa)
+	const temp = battingTeamName;
+	battingTeamName = bowlingTeamName;
+	bowlingTeamName = temp;
+
 	// Save target data to localStorage for restoration after reload
 	const secondInningsData = {
 		isTargetMode: true,
 		targetRuns: targetRuns,
 		targetOvers: targetOvers,
-		isSecondInnings: true
+		isSecondInnings: true,
+		battingTeamName: battingTeamName,
+		bowlingTeamName: bowlingTeamName
 	};
 	localStorage.setItem('secondInningsTarget', JSON.stringify(secondInningsData));
 
@@ -1512,12 +1623,19 @@ function startSecondInnings() {
 	// Save 1st innings to history
 	saveMatchToHistory('1st');
 
+	// Swap team names for second innings
+	const temp = battingTeamName;
+	battingTeamName = bowlingTeamName;
+	bowlingTeamName = temp;
+
 	// Save target data to localStorage for restoration after reload
 	const secondInningsData = {
 		isTargetMode: true,
 		targetRuns: secondInningsTarget,
 		targetOvers: secondInningsOvers,
-		isSecondInnings: true
+		isSecondInnings: true,
+		battingTeamName: battingTeamName,
+		bowlingTeamName: bowlingTeamName
 	};
 	localStorage.setItem('secondInningsTarget', JSON.stringify(secondInningsData));
 

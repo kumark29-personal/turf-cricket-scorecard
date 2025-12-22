@@ -86,9 +86,20 @@
                 const matchGroup = groupedMatches[matchName];
                 const leadingMatchId = (matchGroup.single || matchGroup.first || matchGroup.second).matchId;
 
+                // Get team names
+                const matchData = matchGroup.second || matchGroup.first || matchGroup.single;
+                const battingTeam = matchData.battingTeamName || "";
+                const bowlingTeam = matchData.bowlingTeamName || "";
+                let teamNamesHTML = "";
+                if (battingTeam && bowlingTeam) {
+                    teamNamesHTML = `<div style="font-size: 0.9rem; opacity: 0.9; margin-top: 4px;">${battingTeam} vs ${bowlingTeam}</div>`;
+                } else if (battingTeam || bowlingTeam) {
+                    teamNamesHTML = `<div style="font-size: 0.9rem; opacity: 0.9; margin-top: 4px;">${battingTeam || bowlingTeam}</div>`;
+                }
+
                 html += `<div class="card match-history-card">`;
                 html += `<div class="card-header match-history-header d-flex justify-content-between align-items-center">`;
-                html += `<h3 class="mb-0"><strong>${matchName}</strong></h3>`;
+                html += `<div><h3 class="mb-0"><strong>${matchName}</strong></h3>${teamNamesHTML}</div>`;
                 html += `<button class="btn btn-light btn-modern" onclick="downloadMatchPDF('${leadingMatchId}')">📥 Download PDF</button>`;
                 html += `</div>`;
                 html += `<div class="card-body p-4" style="background: white;">`;
@@ -121,9 +132,10 @@
                     // 1st Innings
                     if (matchGroup.first) {
                         const match = matchGroup.first;
+                        const teamName = match.battingTeamName ? ` (${match.battingTeamName})` : "";
                         html += `<div class="col-12 col-md-6">`;
                         html += `<div class="innings-box innings-box-1 text-center py-4">`;
-                        html += `<div class="meta-info text-primary mb-1">1ST INNINGS</div>`;
+                        html += `<div class="meta-info text-primary mb-1">1ST INNINGS${teamName}</div>`;
                         html += `<div class="score-display text-primary" style="font-size: 2.5rem;">${match.finalScore}</div>`;
                         html += `<div class="meta-info mb-4">in ${match.totalOvers} overs</div>`;
                         html += `<div class="d-flex gap-2 justify-content-center">`;
@@ -137,6 +149,7 @@
                     if (matchGroup.second) {
                         const match = matchGroup.second;
                         const firstInnings = matchGroup.first;
+                        const teamName = match.battingTeamName ? ` (${match.battingTeamName})` : "";
 
                         // Determine result
                         let resultBadge = '';
@@ -154,7 +167,7 @@
 
                         html += `<div class="col-12 col-md-6">`;
                         html += `<div class="innings-box innings-box-2 text-center py-4">`;
-                        html += `<div class="meta-info text-success mb-1">2ND INNINGS ${resultBadge}</div>`;
+                        html += `<div class="meta-info text-success mb-1">2ND INNINGS${teamName} ${resultBadge}</div>`;
                         html += `<div class="score-display text-success" style="font-size: 2.5rem;">${match.finalScore}</div>`;
                         html += `<div class="meta-info mb-4">in ${match.totalOvers} overs</div>`;
                         html += `<div class="d-flex gap-2 justify-content-center">`;
