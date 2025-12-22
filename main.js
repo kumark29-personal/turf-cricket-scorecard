@@ -15,6 +15,7 @@ var targetOvers = -1; //total overs
 var maxOversMode = false; // Track if max overs mode is active
 var maxOvers = -1; // Maximum overs for the innings
 var isShareMode = false;
+var wicketWithRunMode = false; // Track if wicket with run mode is active
 
 // localStorage functions for match data persistence
 function saveMatchData() {
@@ -80,7 +81,7 @@ function loadMatchData() {
 
 			// Show target board
 			updateTarget();
-			$("#targetBoard").show();
+			// $("#targetBoard").show(); // Target now shown in top row
 			$("#targetModeButton").hide();
 
 			// Hide Max Overs button for second innings
@@ -155,9 +156,11 @@ function saveMatchToHistory(inningsType = 'single') {
 		let matchNumber, matchName, inningsLabel, linkedMatchId = null;
 
 		if (inningsType === '1st') {
-			// For 1st innings, count unique match names to get next number
-			const existingMatches = new Set(history.map(m => m.matchName));
-			matchNumber = existingMatches.size + 1;
+			// For 1st innings, get next match number from counter
+			let matchCounter = parseInt(localStorage.getItem('matchCounter') || '0');
+			matchCounter++;
+			localStorage.setItem('matchCounter', matchCounter.toString());
+			matchNumber = matchCounter;
 			matchName = `Match ${matchNumber}`;
 			inningsLabel = '1st Innings';
 		} else if (inningsType === '2nd') {
@@ -168,14 +171,20 @@ function saveMatchToHistory(inningsType = 'single') {
 				linkedMatchId = lastMatch.matchId;
 				inningsLabel = '2nd Innings';
 			} else {
-				matchNumber = 1;
+				// Fallback if no history
+				let matchCounter = parseInt(localStorage.getItem('matchCounter') || '0');
+				matchCounter++;
+				localStorage.setItem('matchCounter', matchCounter.toString());
+				matchNumber = matchCounter;
 				matchName = `Match ${matchNumber}`;
 				inningsLabel = '2nd Innings';
 			}
 		} else {
-			// Single innings match - count unique matches
-			const existingMatches = new Set(history.map(m => m.matchName));
-			matchNumber = existingMatches.size + 1;
+			// Single innings match - get next match number from counter
+			let matchCounter = parseInt(localStorage.getItem('matchCounter') || '0');
+			matchCounter++;
+			localStorage.setItem('matchCounter', matchCounter.toString());
+			matchNumber = matchCounter;
 			matchName = `Match ${matchNumber}`;
 			inningsLabel = null;
 		}
@@ -218,8 +227,8 @@ function saveMatchToHistory(inningsType = 'single') {
 		// Add to history
 		history.push(matchData);
 
-		// Limit to 100 innings (50 matches max) to prevent localStorage overflow
-		if (history.length > 100) {
+		// Limit to 40 innings (20 matches max) to prevent localStorage overflow
+		if (history.length > 40) {
 			history.shift();
 		}
 
@@ -285,6 +294,14 @@ function showMatchHistory() {
 
 		// Display grouped matches (limit to last 2 for modal)
 		const matchNames = Object.keys(groupedMatches);
+
+		// Sort matches by timestamp (newest first)
+		matchNames.sort((a, b) => {
+			const matchA = groupedMatches[a].single || groupedMatches[a].second || groupedMatches[a].first;
+			const matchB = groupedMatches[b].single || groupedMatches[b].second || groupedMatches[b].first;
+			return new Date(matchB.timestamp) - new Date(matchA.timestamp);
+		});
+
 		const displayMatches = matchNames.slice(0, 2); // Show only last 2 matches
 		displayMatches.forEach((matchName) => {
 			const matchGroup = groupedMatches[matchName];
@@ -397,6 +414,31 @@ function showMatchHistory() {
 
 	// Show the modal
 	$('#historyModal').modal('show');
+}
+
+function deleteMatch(matchId) {
+	// Show confirmation dialog
+	if (!confirm('Are you sure you want to delete this match? This action cannot be undone.')) {
+		return; // User cancelled
+	}
+
+	try {
+		const history = getMatchHistory();
+
+		// Find and remove the match
+		const updatedHistory = history.filter(match => match.matchId !== matchId);
+
+		// Save updated history
+		localStorage.setItem('cricketMatchHistory', JSON.stringify(updatedHistory));
+
+		// Refresh the match history display
+		showMatchHistory();
+
+		console.log('Match deleted:', matchId);
+	} catch (e) {
+		console.error('Error deleting match:', e);
+		alert('Failed to delete match. Please try again.');
+	}
 }
 
 function showMatchDetails(matchId) {
@@ -625,8 +667,14 @@ $(document).ready(function () {
 	// Load saved match data on page load
 	loadMatchData();
 
+
 	// Initialize max overs display
 	updateMaxOversDisplay();
+
+	// Hide page loader after everything is loaded
+	setTimeout(function () {
+		$("#pageLoader").fadeOut(300);
+	}, 500);
 
 	$("#run_dot").on("click", function (event) {
 		play_ball("D", 0);
@@ -653,8 +701,35 @@ $(document).ready(function () {
 		play_ball(6);
 	});
 	$("#run_W").on("click", function (event) {
-		play_ball("W", 0);
+		// Show wicket options modal
+		$('#wicketOptionsModal').modal('show');
 	});
+
+	// Wicket option handlers
+	window.handleWicketNoRun = function () {
+		play_ball("W", 0);
+	};
+
+	window.handleWicketWithRun = function () {
+		wicketWithRunMode = true;
+		// Record wicket first
+		wickets++;
+
+		// Show instruction message
+		$("#no-ball-warning").text("Wicket + Run: Tap the runs scored on this ball.").show();
+
+		// Save wicket to delivery history
+		deliveryHistory.push({
+			type: 'wicket_with_run_pending',
+			over: over_no,
+			ball: ball_no,
+			runs: runs,
+			wickets: wickets
+		});
+
+		saveMatchData();
+	};
+
 	$("#scoreboard-btn").on("click", function (event) {
 		update_scoreboard();
 	});
@@ -679,6 +754,56 @@ function shareModeStart() {
 }
 
 function play_ball(run, score = 1) {
+	// Handle wicket with run mode
+	if (wicketWithRunMode && run !== "W" && run !== "+" && run !== "NB") {
+		// User clicked a run button after selecting wicket + run
+		runs += run === "D" ? 0 : run;
+		scoreboard[over_no][ball_no] = run;
+
+		// Hide instruction message
+		$("#no-ball-warning").hide();
+
+		// Update the last delivery with the run information
+		if (deliveryHistory.length > 0 && deliveryHistory[deliveryHistory.length - 1].type === 'wicket_with_run_pending') {
+			deliveryHistory[deliveryHistory.length - 1] = {
+				type: 'wicket_with_run',
+				over: over_no,
+				ball: ball_no,
+				run: run,
+				runs: runs,
+				wickets: wickets
+			};
+		}
+
+		// Track ball details
+		if (!ballDetails[over_no]) ballDetails[over_no] = [];
+		let ballDisplay = run === "D" ? "0" : run;
+		ballDetails[over_no].push(ballDisplay.toString() + "W");
+
+		// Move to next ball
+		ball_no++;
+		if (ball_no >= 7) {
+			ball_no = 1;
+			over_no++;
+			scoreboard[over_no] = [];
+			scoreboard[over_no][0] = 0;
+			widesData[over_no] = [0, 0];
+			noBallsData[over_no] = [0, 0];
+			ballDetails[over_no] = [];
+			ballExtras[over_no] = [];
+		}
+
+		// Reset mode
+		wicketWithRunMode = false;
+
+		update_runboard();
+		update_score();
+		update_scoreboard();
+		checkMaxOversComplete();
+		saveMatchData();
+		return;
+	}
+
 	if (run == "+") {
 		//Wide ball
 		runs++;
@@ -775,7 +900,22 @@ function update_runboard() {
 	// Updates the runboard when the function is called
 	for (i = 1; i < 7; i++) {
 		let score_und = (_score_und) => (_score_und == undefined ? "" : _score_und);
-		updateHtml("#ball_no_" + i.toString(), score_und(scoreboard[over_no][i]));
+		let displayValue = score_und(scoreboard[over_no][i]);
+		let isWicketWithRun = false;
+		let wicketRuns = "";
+
+		// Check if this ball is a wicket+run from ballDetails
+		if (ballDetails[over_no] && ballDetails[over_no].length >= i) {
+			let ballDetail = ballDetails[over_no][i - 1]; // ballDetails is 0-indexed
+			if (ballDetail && ballDetail.toString().endsWith("W") && ballDetail !== "W" && ballDetail !== "Wd") {
+				// This is a wicket+run ball, display W in circle and runs as badge
+				isWicketWithRun = true;
+				wicketRuns = ballDetail.slice(0, -1);
+				displayValue = "W";
+			}
+		}
+
+		updateHtml("#ball_no_" + i.toString(), displayValue);
 
 		// Update extras badge for this ball
 		if (ballExtras[over_no] && ballExtras[over_no][i]) {
@@ -797,6 +937,10 @@ function update_runboard() {
 			} else {
 				$("#ball_extras_" + i).hide();
 			}
+		} else if (isWicketWithRun) {
+			// Show runs as badge for wicket+run
+			$("#ball_extras_" + i).text("+" + wicketRuns);
+			$("#ball_extras_" + i).show();
 		} else {
 			$("#ball_extras_" + i).hide();
 		}
@@ -918,9 +1062,26 @@ function update_scoreboard() {
 	for (i = 1; i <= over_no; i++) {
 		table = table + "<tr>";
 		table += "<td>" + i.toString() + "</td>";
+
+		// Use ballDetails for accurate ball representation
+		let ballsDisplay = "";
+		if (ballDetails[i] && ballDetails[i].length > 0) {
+			ballsDisplay = ballDetails[i].map(ball => {
+				if (ball === "Wd") return "Wd";
+				if (ball.includes("NB")) return ball;
+				if (ball === "0") return "•";
+				if (ball === "W") return "W";
+				if (ball.toString().endsWith("W")) return ball; // Wicket+run (e.g., "2W")
+				return ball;
+			}).join(" - ");
+		} else {
+			// Fallback to scoreboard array
+			ballsDisplay = scoreboard[i].slice(1, 7).join(" - ");
+		}
+
 		table +=
 			"<td>" +
-			scoreboard[i].slice(1, 7).join(" - ") +
+			ballsDisplay +
 			" (" +
 			scoreboard[i][0].toString() +
 			")" +
@@ -937,6 +1098,14 @@ function update_scoreboard() {
 		scoreboard[i].forEach((element) => {
 			if (element == "W") totalWickets++;
 		});
+		// Also count wickets from ballDetails (for wicket+run)
+		if (ballDetails[i]) {
+			ballDetails[i].forEach((ball) => {
+				if (ball && ball.toString().endsWith("W") && ball !== "Wd" && ball.length > 1) {
+					totalWickets++;
+				}
+			});
+		}
 	}
 
 	// Add total row
@@ -963,6 +1132,21 @@ function update_score() {
 			if (element == "W") wickets++;
 		});
 	}
+
+	// Also count wickets from ball details (for wicket+run cases like "2W")
+	for (i = 1; i <= over_no; i++) {
+		if (ballDetails[i]) {
+			ballDetails[i].forEach((ball) => {
+				if (ball && ball.toString().includes("W") && ball !== "Wd") {
+					// Check if not already counted (only count if it's XW format, not plain W)
+					if (ball.length > 1 && ball !== "Wd") {
+						wickets++;
+					}
+				}
+			});
+		}
+	}
+
 	// console.log(wickets);
 	runs = score;
 	updateTarget();
@@ -1025,6 +1209,12 @@ function update_statistics() {
 				bgColor = "#000"; // Black for wicket
 				textColor = "#fff";
 				ballText = "W";
+			} else if (ball.toString().endsWith("W")) {
+				// Wicket + Run (e.g., "2W")
+				bgColor = "#000"; // Black for wicket
+				textColor = "#fff";
+				let runs = ball.slice(0, -1); // Remove 'W' to get runs
+				ballText = '<div style="line-height: 1rem; font-size: 0.65rem;">' + runs + '<br><span style="font-size: 0.9rem; font-weight: bold;">W</span></div>';
 			} else {
 				bgColor = "#0d6efd"; // Blue for runs
 				textColor = "#fff";
@@ -1244,7 +1434,7 @@ function checkMaxOversComplete() {
 		);
 
 		// Show the target board with the message
-		$("#targetBoard").show();
+		$("#targetBoard").css("display", "block"); // Override !important to show message
 		$("#targetModeButton").show();
 
 		// Disable max overs mode to prevent repeated messages
@@ -1299,7 +1489,7 @@ function setTargetForCurrentMatch() {
 	targetRuns = parseInt($("#targetRuns").val());
 	targetOvers = parseInt($("#targetOvers").val());
 	updateTarget();
-	$("#targetBoard").show(2500);
+	// $("#targetBoard").show(2500); // Target now shown in top row
 	$("#targetModeButton").hide();
 	publishMessage(
 		JSON.stringify({
@@ -1347,7 +1537,7 @@ function setTarget(isTargetModeOn = true) {
 		targetRuns = parseInt($("#targetRuns").val());
 		targetOvers = parseInt($("#targetOvers").val());
 		updateTarget();
-		$("#targetBoard").show(2500);
+		// $("#targetBoard").show(2500); // Target now shown in top row
 		$("#targetModeButton").hide();
 	}
 	publishMessage(
@@ -1358,9 +1548,22 @@ function setTarget(isTargetModeOn = true) {
 }
 
 function updateTarget() {
-	if (!isTargetMode) return;
-	updateHtml("#targetRunsRequired", targetRuns - runs);
-	let ballsLeft = targetOvers * 6 - ((over_no - 1) * 6 + ball_no - 1);
+	if (!isTargetMode) {
+		// Hide target display in top bar
+		$("#targetTopDisplay").hide();
+		return;
+	}
+
+	const runsRequired = targetRuns - runs;
+	const ballsLeft = targetOvers * 6 - ((over_no - 1) * 6 + ball_no - 1);
+
+	// Update top bar display
+	$("#targetRunsTopValue").text(runsRequired);
+	$("#targetBallsTopValue").text(ballsLeft);
+	$("#targetTopDisplay").show();
+
+	// Update old targetBoard display
+	updateHtml("#targetRunsRequired", runsRequired);
 	updateHtml("#targetOversLeft", ballsLeft);
 
 	let closeButton =
@@ -1382,14 +1585,20 @@ function updateTarget() {
 				"Hurray! The bowling team has Won!!" + newMatchButton + closeButton
 			);
 		}
+		$("#targetBoard").css("display", "block"); // Override !important to show result
 		$("#targetModeButton").show();
+		// Hide target display from top bar when match is over
+		$("#targetTopDisplay").hide();
 	}
 	if (targetRuns <= runs) {
 		updateHtml(
 			"#targetBody",
 			"Hurray! The batting team has Won!!" + newMatchButton + closeButton
 		);
+		$("#targetBoard").css("display", "block"); // Override !important to show result
 		$("#targetModeButton").show();
+		// Hide target display from top bar when match is over
+		$("#targetTopDisplay").hide();
 	}
 }
 

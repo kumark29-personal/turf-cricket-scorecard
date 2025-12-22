@@ -21,6 +21,17 @@
 </head>
 
 <body style="background-color:#e5f3ff;">
+  <!-- Loading Spinner -->
+  <div id="pageLoader"
+    style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(229, 243, 255, 0.95); z-index: 9999; display: flex; align-items: center; justify-content: center;">
+    <div style="text-align: center;">
+      <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+      <p style="margin-top: 15px; color: #0d6efd; font-weight: bold;">Loading Cricket Scorecard...</p>
+    </div>
+  </div>
+
   <div class="container">
 
 
@@ -30,9 +41,18 @@
       <!-- Top row: Max Overs and Refresh Icon -->
       <div class="row no-gutters align-items-center justify-content-between"
         style="padding: 2px 8px; min-height: 20px;">
+        <!-- Max Overs Display (first innings only) -->
         <div class="col-auto" id="maxOversTopDisplay" style="display: none;">
           <span style="font-size: 0.7rem; color: #666;">Max Overs: </span>
           <span id="maxOversTopValue" style="font-size: 0.8rem; font-weight: bold; color: #0d6efd;">-</span>
+        </div>
+        <!-- Target Display (second innings only) -->
+        <div class="col-auto" id="targetTopDisplay" style="display: none;">
+          <span style="font-size: 0.7rem; color: #dc3545;">Require </span>
+          <span id="targetRunsTopValue" style="font-size: 0.8rem; font-weight: bold; color: #dc3545;">-</span>
+          <span style="font-size: 0.7rem; color: #dc3545;"> runs in </span>
+          <span id="targetBallsTopValue" style="font-size: 0.8rem; font-weight: bold; color: #dc3545;">-</span>
+          <span style="font-size: 0.7rem; color: #dc3545;"> balls</span>
         </div>
         <div class="col-auto ms-auto">
           <button type="button" class="btn btn-link" data-bs-toggle="modal" data-bs-target="#refreshModal"
@@ -104,7 +124,7 @@
 
 
       <div class="alert alert-primary text-center" role="alert" id="targetBoard"
-        style="display: none; transition: height 1400ms;">
+        style="display: none !important; transition: height 1400ms;">
         <span id="targetBody">Require
           <h5 style="display: inline;"><span class="badge bg-secondary" id="targetRunsRequired">-</span></h5>
           runs in
@@ -156,16 +176,17 @@
 
         <div class="col-4 my-auto zoom py-4 px-1 run-btn">
           <button type="button" class="btn btn-info btn-custom btn-custom-sm" data-bs-toggle="modal"
-            data-bs-target="#myModal" id="scoreboard-btn">Scoreboard</button>
+            data-bs-target="#myModal" id="scoreboard-btn" style="font-size: 0.75rem; height: 50px;">Change
+            score</button>
         </div>
         <div class="col-4 my-auto zoom py-4 px-1 run-btn">
           <button type="button" class="btn btn-custom btn-custom-sm" data-bs-toggle="modal"
             data-bs-target="#TargetModal" id="targetModeButton" title="Target mode"
-            style="background-color: #3074c9; color: white; border: none;">Target</button>
+            style="background-color: #3074c9; color: white; border: none; height: 50px;">Target</button>
         </div>
         <div class="col-4 my-auto zoom py-4 px-1 run-btn">
           <button type="button" class="btn btn-danger btn-custom btn-custom-sm" data-bs-toggle="modal"
-            data-bs-target="#myModal2">Undo</button>
+            data-bs-target="#myModal2" style="height: 50px;">Undo</button>
         </div>
       </div>
 
@@ -241,7 +262,7 @@
         <!-- Modal content-->
         <div class="modal-content">
           <div class="modal-header">
-            <h4 class="modal-title">Scorecard</h4>
+            <h4 class="modal-title">Change score</h4>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
           <div class="modal-body">
@@ -462,6 +483,34 @@
               ← Back to List
             </button>
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Wicket Options Modal -->
+    <div class="modal fade" id="wicketOptionsModal" role="dialog">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h4 class="modal-title">Wicket Options</h4>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <p class="text-center mb-3">Choose wicket type:</p>
+            <div class="d-grid gap-3">
+              <button type="button" class="btn btn-danger btn-lg" onclick="handleWicketNoRun()" data-bs-dismiss="modal">
+                🏏 Wicket + No Run
+              </button>
+              <button type="button" class="btn btn-warning btn-lg" onclick="handleWicketWithRun()"
+                data-bs-dismiss="modal">
+                🏃 Wicket + Run
+              </button>
+            </div>
+            <p class="mt-3 text-muted small">
+              <strong>Wicket + No Run:</strong> Batsman out, no runs scored<br>
+              <strong>Wicket + Run:</strong> Batsman out while attempting runs (e.g., run-out)
+            </p>
           </div>
         </div>
       </div>

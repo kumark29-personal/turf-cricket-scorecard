@@ -137,7 +137,71 @@ A feature-rich web application to manage a scoreboard for standard cricket match
 - **Target Mode Activation**: Second innings starts with target mode enabled
 - **Hidden Controls**: Max overs button hidden during second innings
 
+### 🎯 Target Mode Enhancements
+
+#### Target Display
+- **Top Row Display**: Target information shown in top row ("Require X runs in Y balls")
+- **Clean Interface**: Removed duplicate target display below score
+- **Auto-Hide on Completion**: Target display automatically hidden when match ends
+- **Match Result Messages**: Win/loss/tie messages displayed in blue box when match completes
+
+#### Second Innings Management
+- **Start Second Innings**: Click Target button → "Start Second Innings" option
+- **Auto-Calculate**: Target runs and overs pre-filled from first innings
+- **First Innings Save**: Automatically saves first innings to match history
+- **Sequential Match Numbering**: Persistent counter ensures correct match numbers even after deletions
+
+### 🏏 Wicket Options Feature
+
+#### Wicket + Run Capability
+- **Modal Popup**: Clicking wicket button shows two options:
+  - **Wicket + No Run**: Traditional wicket (current behavior)
+  - **Wicket + Run**: Record wicket with runs scored on same ball
+- **Smart Display**: Wicket+run balls show:
+  - "W" inside the ball circle
+  - "+X" badge above (e.g., "+2", "+6") similar to wides/no balls
+- **Accurate Tracking**: Both wicket and runs counted correctly in:
+  - Top scorecard
+  - Over breakdown (black circle with runs badge)
+  - Change score popup
+  - Ball-wise display
+
+#### Undo Support
+- **Complete Undo**: Both wicket types can be undone
+- **State Restoration**: Correctly reverts wickets, runs, and ball state
+- **Pending Wicket Undo**: Can undo if user cancels before selecting runs
+
+### 📊 Match History Improvements
+
+#### Match History Page Enhancements
+- **Sleeker Design**: Reduced header padding and refined button styling
+- **Delete All Matches**: New button to clear entire match history
+  - Double confirmation to prevent accidental deletion
+  - Resets match counter to 0
+- **Proper Sorting**: Matches always sorted by timestamp (newest first)
+- **Correct Display**: Modal shows 2 most recent matches, sorted correctly
+
+#### Match Numbering Fix
+- **Persistent Counter**: Uses localStorage counter that always increments
+- **No Backwards Numbering**: Match numbers never decrease after deletions
+- **Sequential Integrity**: Match 1, 2, 3... continues even if some deleted
+
 ### 🐛 Bug Fixes
+
+#### Wicket + Run Fixes
+- **Bug 1 Fixed**: Wicket count now correctly updated in top scorecard for wicket+run
+- **Bug 2 Fixed**: Wicket+run balls show black circle in over breakdown
+- **Bug 3 Fixed**: Wicket+run displayed correctly in change score popup
+
+#### Target Display Fixes
+- **Duplicate Display Removed**: Target only shows in top row, not in blue box below
+- **Match Result Messages**: Win/loss/tie messages now display correctly
+- **Over Completed Message**: "Start Second Innings" message displays properly
+
+#### Match History Fixes
+- **Modal Display**: Fixed missing matches in history modal (now shows 2 most recent)
+- **Sorting Issue**: Matches sorted by timestamp before displaying
+- **Match Numbering**: Fixed backwards numbering after deletions
 
 #### Ball Count Display
 - **Fixed Duplicate Increment**: Ball count now increments by 1 (not 2)
@@ -164,12 +228,19 @@ A feature-rich web application to manage a scoreboard for standard cricket match
 ✅ Auto-save to localStorage  
 ✅ Max overs feature with automatic over completion detection  
 ✅ Seamless first and second innings transition  
+✅ **Wicket + Run option** for recording wickets with runs on same ball  
+✅ **Smart wicket display** with W in circle and runs as badge  
 ✅ Match history with automatic saving  
+✅ **Delete all matches** feature with double confirmation  
+✅ **Persistent match numbering** that never goes backwards  
 ✅ Past scorecard viewer with full details  
-✅ Undo support for all delivery types  
+✅ **Sorted match history** (newest first) in modal and page  
+✅ Undo support for all delivery types (including wicket+run)  
 ✅ Over-wise totals in scoreboard  
 ✅ Standard cricket over notation (X.0 format)  
 ✅ Score editing with live updates  
+✅ **Target display in top row** with clean interface  
+✅ **Match result messages** (win/loss/tie) displayed correctly  
 ✅ Refresh modal for controlled reset  
 ✅ Enhanced UI with optimized layout  
 ✅ No data loss on page refresh  

@@ -12,16 +12,21 @@
 
 <body>
     <div class="container py-4">
-        <div class="page-header text-center mb-5"
-            style="background: linear-gradient(135deg, #0d6efd 0%, #0056b3 100%); color: white; padding: 40px; border-radius: 20px; box-shadow: 0 10px 30px rgba(13, 110, 253, 0.2);">
-            <h1 class="display-4"><strong>📋 Match History</strong></h1>
-            <p class="lead">Explore your complete cricket journey</p>
+        <div class="page-header text-center mb-4"
+            style="background: linear-gradient(135deg, #0d6efd 0%, #0056b3 100%); color: white; padding: 25px 30px; border-radius: 15px; box-shadow: 0 4px 15px rgba(13, 110, 253, 0.15);">
+            <h1 class="display-5 mb-2"><strong>📋 Match History</strong></h1>
+            <p class="mb-0" style="font-size: 0.95rem; opacity: 0.95;">Explore your complete cricket journey</p>
         </div>
 
         <div class="row mb-4">
-            <div class="col-md-12">
-                <button class="btn btn-modern btn-modern-outline px-4" onclick="window.close()">
+            <div class="col-md-12 d-flex justify-content-between align-items-center gap-2">
+                <button class="btn btn-outline-primary px-4 py-2" onclick="window.close()"
+                    style="border-radius: 10px; font-weight: 500; border-width: 2px;">
                     ← Back to Scorecard
+                </button>
+                <button class="btn btn-danger px-4 py-2" onclick="deleteAllMatches()"
+                    style="border-radius: 10px; font-weight: 500;">
+                    🗑️ Delete All
                 </button>
             </div>
         </div>
@@ -54,9 +59,14 @@
                 return;
             }
 
+            // Sort history by timestamp (newest first)
+            const sortedHistory = [...history].sort((a, b) => {
+                return new Date(b.timestamp) - new Date(a.timestamp);
+            });
+
             // Group matches by matchName
             const groupedMatches = {};
-            history.forEach((match) => {
+            sortedHistory.forEach((match) => {
                 if (!groupedMatches[match.matchName]) {
                     groupedMatches[match.matchName] = {};
                 }
@@ -71,7 +81,7 @@
 
             let html = '';
 
-            // Display all grouped matches
+            // Display all grouped matches (newest first)
             Object.keys(groupedMatches).forEach((matchName) => {
                 const matchGroup = groupedMatches[matchName];
                 const leadingMatchId = (matchGroup.single || matchGroup.first || matchGroup.second).matchId;
@@ -98,8 +108,11 @@
                     html += `<div class="text-center py-3">`;
                     html += `<div class="score-display text-primary" style="font-size: 3rem;">${match.finalScore}</div>`;
                     html += `<div class="meta-info mb-4" style="font-size: 1.1rem;">in ${match.totalOvers} overs • ${formattedDate}</div>`;
-                    html += `<button class="btn btn-modern btn-modern-outline btn-lg" style="min-width: 250px;" onclick="showMatchDetails('${match.matchId}')">`;
+                    html += `<div class="d-flex gap-2 justify-content-center">`;
+                    html += `<button class="btn btn-modern btn-modern-outline btn-lg" style="min-width: 200px;" onclick="showMatchDetails('${match.matchId}')">`;
                     html += `Details</button>`;
+                    html += `<button class="btn btn-danger btn-lg" onclick="deleteMatch('${match.matchId}')" title="Delete this match">🗑️</button>`;
+                    html += `</div>`;
                     html += `</div>`;
                 } else {
                     // Two innings match
@@ -113,9 +126,11 @@
                         html += `<div class="meta-info text-primary mb-1">1ST INNINGS</div>`;
                         html += `<div class="score-display text-primary" style="font-size: 2.5rem;">${match.finalScore}</div>`;
                         html += `<div class="meta-info mb-4">in ${match.totalOvers} overs</div>`;
-                        html += `<button class="btn btn-modern btn-modern-outline px-5" onclick="showMatchDetails('${match.matchId}')">`;
+                        html += `<div class="d-flex gap-2 justify-content-center">`;
+                        html += `<button class="btn btn-modern btn-modern-outline px-4" onclick="showMatchDetails('${match.matchId}')">`;
                         html += `Details</button>`;
-                        html += `</div></div>`;
+                        html += `<button class="btn btn-danger btn-sm" onclick="deleteMatch('${match.matchId}')" title="Delete this innings">🗑️</button>`;
+                        html += `</div></div></div>`;
                     }
 
                     // 2nd Innings
@@ -142,9 +157,11 @@
                         html += `<div class="meta-info text-success mb-1">2ND INNINGS ${resultBadge}</div>`;
                         html += `<div class="score-display text-success" style="font-size: 2.5rem;">${match.finalScore}</div>`;
                         html += `<div class="meta-info mb-4">in ${match.totalOvers} overs</div>`;
-                        html += `<button class="btn btn-modern btn-modern-outline px-5" style="border-color: #28a745; color: #28a745;" onclick="showMatchDetails('${match.matchId}')">`;
+                        html += `<div class="d-flex gap-2 justify-content-center">`;
+                        html += `<button class="btn btn-modern btn-modern-outline px-4" style="border-color: #28a745; color: #28a745;" onclick="showMatchDetails('${match.matchId}')">`;
                         html += `Details</button>`;
-                        html += `</div></div>`;
+                        html += `<button class="btn btn-danger btn-sm" onclick="deleteMatch('${match.matchId}')" title="Delete this innings">🗑️</button>`;
+                        html += `</div></div></div>`;
                     }
 
                     html += `</div>`; // End row
@@ -172,6 +189,61 @@
 
             container.innerHTML = html;
         });
+
+        // Delete match function for this page
+        function deleteMatch(matchId) {
+            // Show confirmation dialog
+            if (!confirm('Are you sure you want to delete this match? This action cannot be undone.')) {
+                return; // User cancelled
+            }
+
+            try {
+                const history = getMatchHistory();
+
+                // Find and remove the match
+                const updatedHistory = history.filter(match => match.matchId !== matchId);
+
+                // Save updated history
+                localStorage.setItem('cricketMatchHistory', JSON.stringify(updatedHistory));
+
+                // Reload the page to refresh the display
+                location.reload();
+
+                console.log('Match deleted:', matchId);
+            } catch (e) {
+                console.error('Error deleting match:', e);
+                alert('Failed to delete match. Please try again.');
+            }
+        }
+
+        // Delete all matches function
+        function deleteAllMatches() {
+            // Show confirmation dialog
+            if (!confirm('Are you sure you want to delete ALL matches? This action cannot be undone and will permanently delete your entire match history.')) {
+                return; // User cancelled
+            }
+
+            // Double confirmation for safety
+            if (!confirm('This will delete ALL your match history permanently. Are you absolutely sure?')) {
+                return; // User cancelled
+            }
+
+            try {
+                // Clear match history
+                localStorage.removeItem('cricketMatchHistory');
+
+                // Reset match counter
+                localStorage.setItem('matchCounter', '0');
+
+                // Reload the page to refresh the display
+                location.reload();
+
+                console.log('All matches deleted');
+            } catch (e) {
+                console.error('Error deleting all matches:', e);
+                alert('Failed to delete matches. Please try again.');
+            }
+        }
     </script>
 
     <!-- Match Details Modal (same as in index.html) -->
