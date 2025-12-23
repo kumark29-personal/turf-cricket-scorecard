@@ -261,6 +261,42 @@ A feature-rich web application to manage a scoreboard for standard cricket match
 - **Fixed Refresh Bug**: No extra ball count added after page refresh
 - **Correct Over Display**: Shows completed overs as X.0 instead of (X-1).6
 
+### 🆕 Recent Updates (December 2023)
+
+#### Wicket+Wide Feature
+- **Complete Implementation**: Wicket on wide delivery now fully supported
+  - Wicket count increments correctly in scorecard
+  - Wide run added to total
+  - Ball count doesn't increment (extras are not legal deliveries)
+- **Visual Display**: "Wd+W" shown in over breakdown with black circle
+- **Individual Badges**: Each extra shows above respective ball circle
+  - "Wd+W" for wicket on wide (black background)
+  - "Wd" for regular wide (red background)
+  - "NB" for no ball (red background)
+  - Combined badges like "Wd+W,NB" when multiple extras on same ball
+- **Consolidated Extras**: Format like "(2Wd+2W+1NB)" showing total wides + wicket count + no balls
+- **Button State Management**: No Ball button disabled during wicket+run mode, re-enabled after selection
+
+#### Match History Scoreboard Enhancements
+- **Ball-by-Ball Breakdown**: Visual representation with colored circles
+  - Blue: Regular runs (1-6)
+  - Gray: Dot balls
+  - Yellow: Wides
+  - Red: No balls
+  - Black: Wickets (including Wd+W, wicket+run)
+- **Per-Over Totals**: Each over shows individual run total (not cumulative)
+- **Grand Total Row**: Highlighted row at bottom showing total runs
+- **Removed Redundancy**: Eliminated duplicate "Over Breakdown" section
+- **PDF Export Updated**: PDF format matches modal display
+- **Total Balls Calculation**: Accurately counts legal deliveries only
+
+#### Bug Fixes
+- **Wicket+Wide Counting**: Fixed wicket count for wicket on wide deliveries
+- **Empty Over Display**: Fixed issue where empty overs showed in scoreboard
+- **Over Total Calculation**: Corrected cumulative total calculations
+- **Badge Display**: Fixed multiple wicket+wide badges overlapping
+- **Extras Display Format**: Corrected to show "(XWd+YW+ZNB)" format
+
 ## Usage
 
 1. Open `index.html` in a web browser
@@ -310,4 +346,4 @@ Works in all modern browsers with localStorage support.
 
 
 ## Credits
-Developed and enhanced from this project -> [Sahil3201/cricket-score](https://github.com/Sahil3201/cricket-score)
+Developed/enhanced/Inspired from this project -> [Sahil3201/cricket-score](https://github.com/Sahil3201/cricket-score)

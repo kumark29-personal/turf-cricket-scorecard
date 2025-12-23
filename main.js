@@ -535,17 +535,29 @@ function showMatchDetails(matchId) {
 	// Set title
 	document.getElementById('matchDetailsTitle').textContent = match.matchName;
 
+	// Calculate total legal balls (excluding extras)
+	let totalBalls = 0;
+	if (match.ballDetails) {
+		for (let i = 1; i < match.ballDetails.length; i++) {
+			if (match.ballDetails[i]) {
+				// Count only legal deliveries (not Wd, NB, or Wd+W)
+				totalBalls += match.ballDetails[i].filter(ball =>
+					ball !== "Wd" && !ball.includes("NB") && ball !== "Wd+W"
+				).length;
+			}
+		}
+	}
+
 	// Build details HTML
 	let html = `
-		<div class="mb-3">
-			<h5>Match Summary</h5>
+		<div class="container-fluid">
 			<div class="row">
-				<div class="col-6">
-					<p><strong>Final Score:</strong> ${match.finalScore}</p>
+				<div class="col-md-6">
+					<p><strong>Final Score:</strong> ${match.runs}/${match.wickets}</p>
 					<p><strong>Total Overs:</strong> ${match.totalOvers}</p>
 				</div>
-				<div class="col-6">
-					<p><strong>Total Balls:</strong> ${match.totalBalls}</p>
+				<div class="col-md-6">
+					<p><strong>Total Balls:</strong> ${totalBalls}</p>
 					<p><strong>Date:</strong> ${new Date(match.timestamp).toLocaleString('en-IN')}</p>
 				</div>
 			</div>
@@ -554,76 +566,85 @@ function showMatchDetails(matchId) {
 		<hr>
 		
 		<h5>Scoreboard</h5>
-		<table class="table table-striped table-success">
-			<tr><th>Over</th><th>Score (Extras)</th><th>Total</th></tr>
+		<table class="table table-sm table-bordered">
+			<thead><tr><th>Over</th><th>Balls</th><th>Total</th></tr></thead>
+			<tbody>
 	`;
 
-	// Build scoreboard
-	let cumulativeRuns = 0;
+	// Build scoreboard with ball-by-ball breakdown
+	let grandTotal = 0;
+	let tableRows = '';
+
 	for (let i = 1; i < match.scoreboard.length; i++) {
 		if (!match.scoreboard[i]) continue;
 
-		html += '<tr>';
-		html += `<td>${i}</td>`;
-		html += `<td>${match.scoreboard[i].slice(1, 7).join(' - ')} (${match.scoreboard[i][0]})</td>`;
+		let ballDetails = match.ballDetails && match.ballDetails[i] ? match.ballDetails[i] : [];
 
-		// Calculate over total
-		let numOr0 = (n) => (n == '+' ? 1 : isNaN(n) ? 0 : n);
-		let overTotal = match.scoreboard[i].reduce((a, b) => numOr0(a) + numOr0(b));
-		cumulativeRuns += overTotal;
+		// Skip overs with no balls
+		if (ballDetails.length === 0) continue;
 
-		html += `<td style='font-weight: bold; color: #0d6efd;'>${cumulativeRuns}</td>`;
-		html += '</tr>';
-	}
-
-	html += '</table>';
-
-	// Add over breakdown if available
-	if (match.ballDetails) {
-		html += '<hr><h5>Over Breakdown</h5>';
-		html += '<div style="max-height: 300px; overflow-y: auto;">';
-
-		for (let i = match.ballDetails.length - 1; i >= 1; i--) {
-			if (!match.ballDetails[i] || match.ballDetails[i].length === 0) continue;
-
-			let styledBalls = match.ballDetails[i].map(ball => {
-				let bgColor, textColor, ballText;
-
-				if (ball === 'Wd') {
-					bgColor = '#ffc107';
-					textColor = '#000';
-					ballText = 'Wd';
-				} else if (ball.includes('NB')) {
-					bgColor = '#dc3545';
-					textColor = '#fff';
-					let runs = ball.split('+')[1];
-					ballText = `<div style="line-height: 1rem; font-size: 0.65rem;">NB<br><span style="font-size: 0.9rem; font-weight: bold;">+${runs}</span></div>`;
-				} else if (ball === '0') {
-					bgColor = '#6c757d';
-					textColor = '#fff';
-					ballText = '•';
-				} else if (ball === 'W') {
-					bgColor = '#000';
-					textColor = '#fff';
-					ballText = 'W';
-				} else {
-					bgColor = '#0d6efd';
-					textColor = '#fff';
-					ballText = ball;
-				}
-
-				return `<span style="display: inline-block; width: 2rem; height: 2rem; line-height: 2rem; text-align: center; border-radius: 50%; background-color: ${bgColor}; color: ${textColor}; font-size: 0.75rem; font-weight: bold; margin: 2px;">${ballText}</span>`;
-			}).join(' ');
-
-			html += `
-				<div style="margin-bottom: 8px; padding: 8px; background-color: #f8f9fa; border-radius: 5px;">
-					<strong style="color: #0d6efd;">Over ${i}:</strong> ${styledBalls}
-				</div>
-			`;
+		// Calculate this over's total only
+		let overTotal = 0;
+		if (match.scoreboard[i] && match.scoreboard[i].length > 0) {
+			let numOr0 = (n) => (n == '+' ? 1 : isNaN(n) ? 0 : Number(n));
+			overTotal = match.scoreboard[i].reduce((a, b) => numOr0(a) + numOr0(b), 0);
+			grandTotal += overTotal;
 		}
 
-		html += '</div>';
+		// Create styled balls for this over
+		let styledBalls = ballDetails.map(ball => {
+			let bgColor, textColor, ballText;
+
+			if (ball === 'Wd') {
+				bgColor = '#ffc107';
+				textColor = '#000';
+				ballText = 'Wd';
+			} else if (ball.includes('NB')) {
+				bgColor = '#dc3545';
+				textColor = '#fff';
+				let runs = ball.split('+')[1];
+				ballText = `<div style="line-height: 1rem; font-size: 0.65rem;">NB<br><span style="font-size: 0.9rem; font-weight: bold;">+${runs}</span></div>`;
+			} else if (ball === '0') {
+				bgColor = '#6c757d';
+				textColor = '#fff';
+				ballText = '•';
+			} else if (ball === 'W') {
+				bgColor = '#000';
+				textColor = '#fff';
+				ballText = 'W';
+			} else if (ball === 'Wd+W') {
+				bgColor = '#000';
+				textColor = '#fff';
+				ballText = `<div style="line-height: 1rem; font-size: 0.65rem;">Wd<br><span style="font-size: 0.9rem; font-weight: bold;">W</span></div>`;
+			} else if (ball.toString().endsWith('W')) {
+				bgColor = '#000';
+				textColor = '#fff';
+				let runs = ball.slice(0, -1);
+				ballText = `<div style="line-height: 1rem; font-size: 0.65rem;">${runs}<br><span style="font-size: 0.9rem; font-weight: bold;">W</span></div>`;
+			} else {
+				bgColor = '#0d6efd';
+				textColor = '#fff';
+				ballText = ball;
+			}
+
+			return `<span style="display: inline-block; width: 2rem; height: 2rem; line-height: 2rem; text-align: center; border-radius: 50%; background-color: ${bgColor}; color: ${textColor}; font-size: 0.75rem; font-weight: bold; margin: 2px; vertical-align: middle;">${ballText}</span>`;
+		}).join(' ');
+
+		tableRows += `<tr>`;
+		tableRows += `<td><strong>${i}</strong></td>`;
+		tableRows += `<td>${styledBalls || '-'}</td>`;
+		tableRows += `<td><strong>${overTotal}</strong></td>`;
+		tableRows += `</tr>`;
 	}
+
+	// Add grand total row
+	tableRows += `<tr style="background-color: #e9ecef; font-weight: bold;">`;
+	tableRows += `<td colspan="2" style="text-align: right; padding-right: 10px;">Grand Total:</td>`;
+	tableRows += `<td><strong style="color: #0d6efd; font-size: 1.1rem;">${grandTotal}</strong></td>`;
+	tableRows += `</tr>`;
+
+	html += tableRows;
+	html += `</tbody></table>`;
 
 	document.getElementById('matchDetailsBody').innerHTML = html;
 
@@ -733,26 +754,58 @@ function downloadMatchPDF(matchId) {
 				doc.setTextColor(0);
 			}
 
-			// Scoreboard Table
+			// Scoreboard Table with ball-by-ball breakdown
 			const tableData = [];
-			let cumulativeRuns = 0;
+			let grandTotal = 0;
 			for (let i = 1; i < m.scoreboard.length; i++) {
 				if (!m.scoreboard[i]) continue;
 
-				let numOr0 = (n) => (n == '+' ? 1 : isNaN(n) ? 0 : n);
-				let overTotal = m.scoreboard[i].reduce((a, b) => numOr0(a) + numOr0(b));
-				cumulativeRuns += overTotal;
+				// Build ball-by-ball text representation
+				let ballDetails = m.ballDetails && m.ballDetails[i] ? m.ballDetails[i] : [];
+
+				// Skip overs with no balls
+				if (ballDetails.length === 0) continue;
+
+				// Calculate this over's total only
+				let overTotal = 0;
+				if (m.scoreboard[i] && m.scoreboard[i].length > 0) {
+					let numOr0 = (n) => (n == '+' ? 1 : isNaN(n) ? 0 : Number(n));
+					overTotal = m.scoreboard[i].reduce((a, b) => numOr0(a) + numOr0(b), 0);
+					grandTotal += overTotal;
+				}
+				let ballsText = ballDetails.map(ball => {
+					if (ball === "Wd") return "Wd";
+					if (ball.includes("NB")) {
+						let runs = ball.split("+")[1];
+						return `NB+${runs}`;
+					}
+					if (ball === "0") return "•";
+					if (ball === "W") return "W";
+					if (ball === "Wd+W") return "Wd+W";
+					if (ball.toString().endsWith("W")) {
+						let runs = ball.slice(0, -1);
+						return `${runs}W`;
+					}
+					return ball;
+				}).join(" ");
 
 				tableData.push([
-					i,
-					`${m.scoreboard[i].slice(1, 7).join(' - ')} (${m.scoreboard[i][0]})`,
-					cumulativeRuns
+					`Over ${i}`,
+					ballsText || '-',
+					overTotal.toString()
 				]);
 			}
 
+			// Add grand total row
+			tableData.push([
+				{ content: 'Grand Total:', colSpan: 2, styles: { halign: 'right', fontStyle: 'bold' } },
+				{ content: grandTotal.toString(), styles: { fontStyle: 'bold', textColor: [13, 110, 253] } }
+			]);
+
+			yPos += 5;
 			doc.autoTable({
-				startY: yPos + 5,
-				head: [['Over', 'Score (Extras)', 'Total']],
+				startY: yPos,
+				head: [['Over', 'Balls', 'Total']],
 				body: tableData,
 				theme: 'striped',
 				headStyles: { fillColor: m.inningsType === '2nd' ? [40, 167, 69] : [13, 110, 253] }, // Green for 2nd, Blue otherwise
@@ -823,6 +876,9 @@ $(document).ready(function () {
 		// Show instruction message
 		$("#no-ball-warning").text("Wicket + Run: Tap the runs scored on this ball.").show();
 
+		// Disable no ball button during wicket+run mode
+		$("#run_no_ball").prop("disabled", true);
+
 		// Save wicket to delivery history
 		deliveryHistory.push({
 			type: 'wicket_with_run_pending',
@@ -860,13 +916,69 @@ function shareModeStart() {
 
 function play_ball(run, score = 1) {
 	// Handle wicket with run mode
-	if (wicketWithRunMode && run !== "W" && run !== "+" && run !== "NB") {
+	if (wicketWithRunMode && run !== "W" && run !== "NB") {
+		// Check if user clicked Wide button (Wide button passes "+")
+		if (run === "+") {
+			// This is Wicket + Wide - wicket was already recorded in handleWicketWithRun
+			runs++; // Wide gives 1 run
+			scoreboard[over_no][0]++;
+
+			// Track wide data
+			if (!widesData[over_no]) {
+				widesData[over_no] = [0, 0];
+			}
+			widesData[over_no][0]++;
+			widesData[over_no][1]++;
+
+			// Track in ballExtras for badge display
+			if (!ballExtras[over_no]) ballExtras[over_no] = [];
+			if (!ballExtras[over_no][ball_no]) ballExtras[over_no][ball_no] = { wides: 0, noBalls: 0, wicketWide: false };
+			ballExtras[over_no][ball_no].wicketWide = true; // Mark as wicket on wide
+
+			// Add to ball details
+			if (!ballDetails[over_no]) {
+				ballDetails[over_no] = [];
+			}
+			ballDetails[over_no].push("Wd+W"); // Wicket on wide
+
+			// Update delivery history - change from pending to completed
+			if (deliveryHistory.length > 0 && deliveryHistory[deliveryHistory.length - 1].type === 'wicket_with_run_pending') {
+				deliveryHistory[deliveryHistory.length - 1] = {
+					type: 'wicket_wide',
+					over: over_no,
+					ball: ball_no,
+					runs: runs,
+					wickets: wickets
+				};
+			}
+
+			// Hide instruction and reset mode
+			$("#no-ball-warning").hide();
+			wicketWithRunMode = false;
+
+			// Re-enable buttons
+			$("#run_no_ball").prop("disabled", false);
+			$("#run_wide").prop("disabled", false);
+
+			// Close wicket modal if open
+			$('#wicketOptionsModal').modal('hide');
+
+			update_score();
+			update_runboard();
+			update_statistics();
+			saveMatchData();
+			return;
+		}
+
 		// User clicked a run button after selecting wicket + run
 		runs += run === "D" ? 0 : run;
 		scoreboard[over_no][ball_no] = run;
 
 		// Hide instruction message
 		$("#no-ball-warning").hide();
+
+		// Re-enable no ball button
+		$("#run_no_ball").prop("disabled", false);
 
 		// Update the last delivery with the run information
 		if (deliveryHistory.length > 0 && deliveryHistory[deliveryHistory.length - 1].type === 'wicket_with_run_pending') {
@@ -1003,16 +1115,34 @@ function play_ball(run, score = 1) {
 
 function update_runboard() {
 	// Updates the runboard when the function is called
+
+	// First, build a map of legal ball positions to ballDetails indices
+	let legalBallIndex = 0; // Counter for legal balls only
+	let positionToBallDetail = {}; // Maps display position (1-6) to ballDetails index
+
+	if (ballDetails[over_no]) {
+		for (let idx = 0; idx < ballDetails[over_no].length; idx++) {
+			let ball = ballDetails[over_no][idx];
+			// Check if this is a legal delivery (not wide, no ball, or wicket+wide)
+			if (ball !== "Wd" && !ball.includes("NB") && ball !== "Wd+W") {
+				legalBallIndex++;
+				positionToBallDetail[legalBallIndex] = idx;
+			}
+		}
+	}
+
 	for (i = 1; i < 7; i++) {
 		let score_und = (_score_und) => (_score_und == undefined ? "" : _score_und);
 		let displayValue = score_und(scoreboard[over_no][i]);
 		let isWicketWithRun = false;
 		let wicketRuns = "";
 
-		// Check if this ball is a wicket+run from ballDetails
-		if (ballDetails[over_no] && ballDetails[over_no].length >= i) {
-			let ballDetail = ballDetails[over_no][i - 1]; // ballDetails is 0-indexed
-			if (ballDetail && ballDetail.toString().endsWith("W") && ballDetail !== "W" && ballDetail !== "Wd") {
+		// Check if this ball is a wicket+run from ballDetails using correct mapping
+		if (positionToBallDetail[i] !== undefined) {
+			let ballDetailIndex = positionToBallDetail[i];
+			let ballDetail = ballDetails[over_no][ballDetailIndex];
+			// Show W in circle for wicket+run (e.g., "2W", "3W") but NOT for "Wd+W" (wicket on wide)
+			if (ballDetail && ballDetail.toString().endsWith("W") && ballDetail !== "W" && ballDetail !== "Wd" && ballDetail !== "Wd+W") {
 				// This is a wicket+run ball, display W in circle and runs as badge
 				isWicketWithRun = true;
 				wicketRuns = ballDetail.slice(0, -1);
@@ -1022,22 +1152,35 @@ function update_runboard() {
 
 		updateHtml("#ball_no_" + i.toString(), displayValue);
 
-		// Update extras badge for this ball
+		// Show extras badge for this specific ball position
 		if (ballExtras[over_no] && ballExtras[over_no][i]) {
 			let extras = ballExtras[over_no][i];
-			let badgeText = "";
-			let parts = [];
+			let badgeParts = [];
 
-			if (extras.wides > 0) {
-				parts.push(extras.wides + "W");
+			// Check for wicket on wide
+			if (extras.wicketWide) {
+				badgeParts.push("Wd+W");
+			} else if (extras.wides > 0) {
+				// Regular wide (no wicket)
+				badgeParts.push("Wd");
 			}
+
+			// Check for no ball
 			if (extras.noBalls > 0) {
-				parts.push(extras.noBalls + "N");
+				badgeParts.push("NB");
 			}
 
-			if (parts.length > 0) {
-				badgeText = parts.join(",");
+			if (badgeParts.length > 0) {
+				let badgeText = badgeParts.join(",");
 				$("#ball_extras_" + i).text(badgeText);
+				// Use black background if there are wicket+wides, otherwise red for regular extras
+				if (extras.wicketWide) {
+					$("#ball_extras_" + i).css("background-color", "#000");
+					$("#ball_extras_" + i).css("color", "#fff");
+				} else {
+					$("#ball_extras_" + i).css("background-color", "#dc3545");
+					$("#ball_extras_" + i).css("color", "#fff");
+				}
 				$("#ball_extras_" + i).show();
 			} else {
 				$("#ball_extras_" + i).hide();
@@ -1079,29 +1222,41 @@ function update_runboard() {
 	let extrasText = "";
 	let extrasInfo = [];
 
-	// Count wides and no balls from ballDetails for current over
+	// Count wides, no balls, and wicket+wides from ballDetails for current over
 	let widesCount = 0;
 	let noBallsCount = 0;
+	let wicketWidesCount = 0;
 
 	if (ballDetails[over_no]) {
 		ballDetails[over_no].forEach(ball => {
 			if (ball === "Wd") {
 				widesCount++;
+			} else if (ball === "Wd+W") {
+				wicketWidesCount++;
 			} else if (ball.includes("NB")) {
 				noBallsCount++;
 			}
 		});
 	}
 
-	if (widesCount > 0) {
+	// Build extras display text in format: 2Wd+2W+1NB (wicket+wides, then regular wides, then no balls)
+	if (wicketWidesCount > 0 && widesCount > 0) {
+		// Combine wicket+wides and regular wides: e.g., "2Wd+2W" means 2 wicket+wides
+		extrasInfo.push((wicketWidesCount + widesCount) + "Wd+" + wicketWidesCount + "W");
+	} else if (wicketWidesCount > 0) {
+		// Only wicket+wides
+		extrasInfo.push(wicketWidesCount + "Wd+" + wicketWidesCount + "W");
+	} else if (widesCount > 0) {
+		// Only regular wides
 		extrasInfo.push(widesCount + "Wd");
 	}
+
 	if (noBallsCount > 0) {
 		extrasInfo.push(noBallsCount + "NB");
 	}
 
 	if (extrasInfo.length > 0) {
-		extrasText = "(" + extrasInfo.join(", ") + ")";
+		extrasText = "(" + extrasInfo.join("+") + ")";
 	}
 
 	updateHtml("#extras-display", extrasText);
@@ -1247,11 +1402,10 @@ function update_score() {
 	for (i = 1; i <= over_no; i++) {
 		if (ballDetails[i]) {
 			ballDetails[i].forEach((ball) => {
-				if (ball && ball.toString().includes("W") && ball !== "Wd") {
-					// Check if not already counted (only count if it's XW format, not plain W)
-					if (ball.length > 1 && ball !== "Wd") {
-						wickets++;
-					}
+				// Count wickets from ball details: "2W", "3W", "Wd+W", etc.
+				// Exclude "W" (already counted above) and "Wd" (wide without wicket)
+				if (ball && ball.toString().endsWith("W") && ball !== "W" && ball !== "Wd") {
+					wickets++;
 				}
 			});
 		}
@@ -1319,6 +1473,11 @@ function update_statistics() {
 				bgColor = "#000"; // Black for wicket
 				textColor = "#fff";
 				ballText = "W";
+			} else if (ball === "Wd+W") {
+				// Wicket on wide
+				bgColor = "#000"; // Black for wicket
+				textColor = "#fff";
+				ballText = '<div style="line-height: 1rem; font-size: 0.65rem;">Wd<br><span style="font-size: 0.9rem; font-weight: bold;">W</span></div>';
 			} else if (ball.toString().endsWith("W")) {
 				// Wicket + Run (e.g., "2W")
 				bgColor = "#000"; // Black for wicket
@@ -1424,7 +1583,7 @@ function noBall(is_NoBall) {
 	isNoBall = is_NoBall;
 	var run_no_ball = $("#run_no_ball");
 	if (is_NoBall) {
-		$("#no-ball-warning").show();
+		$("#no-ball-warning").text("No ball: Tap the runs scored in no ball.").show();
 		$("#run_wide").prop("disabled", true);
 		$("#run_no_ball").prop("disabled", true);
 		$("#run_W").prop("disabled", true);
