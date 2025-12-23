@@ -4,10 +4,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Match History - Cricket Scorecard</title>
+    <title>Match History - Cricket Scorecard | View Past Cricket Matches</title>
+    <meta name="description"
+        content="View your complete cricket match history. Access past scorecards, innings details, match statistics, ball-by-ball records, and download PDF reports of all your cricket matches.">
+    <meta name="keywords"
+        content="cricket match history, past cricket scores, cricket scorecard history, cricket match records, cricket statistics, cricket match archive, cricket innings history, cricket PDF reports, saved cricket matches">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://cricketscore.in.net/match_history.html">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/css/bootstrap.min.css" rel="stylesheet"
         integrity="sha384-+0n0xVW2eSR5OomGNYDnhzAbDsOXxcvSN1TPprVMTNDbiYZCxYbOOl7+AMvyTG2x" crossorigin="anonymous">
     <link rel="stylesheet" href="main.css">
+
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        gtag('js', new Date());
+        gtag('config', 'G-XXXXXXXXXX');
+    </script>
 </head>
 
 <body>
@@ -307,6 +322,30 @@
             </div>
         </div>
     </div>
+
+    <!-- Footer -->
+    <footer class="footer mt-5 py-3 bg-light border-top">
+        <div class="container text-center">
+            <p class="mb-2 text-muted">
+                <strong>Cricket Scorecard</strong> - Track your cricket matches with ease
+            </p>
+            <p class="mb-0">
+                <a href="https://docs.google.com/forms/d/e/1FAIpQLSdsHEUZDMYlJ-TTZV-f9KR06Ru7kiVumpc1XWpfgJMAIiB9ow/viewform?usp=dialog"
+                    target="_blank" rel="noopener noreferrer" class="text-decoration-none">
+                    📝 Feedback/Issues? Click here
+                </a>
+            </p>
+            <p class="mb-0 mt-2 text-muted small">
+                © <span id="currentYear"></span> Cricket Score. All rights reserved.
+            </p>
+        </div>
+    </footer>
+
+    <script>
+        // Set current year in footer
+        document.getElementById('currentYear').textContent = new Date().getFullYear();
+    </script>
+
 </body>
 
 </html>

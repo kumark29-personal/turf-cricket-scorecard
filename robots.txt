@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://cricketscore.in.net/sitemap.xml

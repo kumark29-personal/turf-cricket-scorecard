@@ -334,7 +334,7 @@ function getMatchById(matchId) {
 
 function showMatchHistory() {
 	const history = getMatchHistory();
-	const modalBody = document.getElementById('historyModalBody');
+	const modalBody = document.getElementById('matchHistoryModalBody');
 
 	if (history.length === 0) {
 		modalBody.innerHTML = `
@@ -485,14 +485,6 @@ function showMatchHistory() {
 			html += `</div>`; // End card-body
 			html += `</div>`; // End card
 		});
-
-		// Add "View All Matches" button if there are more than 2 matches
-		if (matchNames.length > 2) {
-			html += `<div class="text-center mt-4">`;
-			html += `<a href="match_history.html" target="_blank" class="btn btn-modern btn-modern-primary btn-lg px-5">`;
-			html += `📋 View Complete History</a>`;
-			html += `</div>`;
-		}
 
 		modalBody.innerHTML = html;
 	}
