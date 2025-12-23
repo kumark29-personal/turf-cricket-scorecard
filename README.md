@@ -2,6 +2,12 @@
 
 A feature-rich web application to manage a scoreboard for standard cricket matches with advanced tracking and persistence capabilities.
 
+## 🌐 Live Demo
+
+**Try it now:** [https://cricketscore.in.net/](https://cricketscore.in.net/)
+
+Experience the full-featured cricket scorecard app online - no installation required!
+
 ## New Features & Enhancements
 
 ### 📊 Enhanced Score Display

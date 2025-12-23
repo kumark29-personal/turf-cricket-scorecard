@@ -118,40 +118,37 @@
     <div class="col-left-custom" style="position: relative;">
 
       <!-- Top row: Team Name, Max Overs/Target (centered), and Refresh Icon -->
-      <div class="row no-gutters align-items-center" style="padding: 2px 8px; min-height: 20px;">
+      <div style="display: flex; align-items: center; padding: 2px 8px; min-height: 20px; gap: 8px;">
 
         <!-- Team Name Display (left) - Always visible -->
-        <div class="col-auto">
+        <div style="flex: 0 0 auto;">
           <div id="teamNameDisplay" onclick="showTeamEditModal()"
-            style="cursor: pointer; padding: 4px 10px; background: #e7f1ff; border: 1px solid #b3d7ff; border-radius: 6px; min-width: 50px; text-align: center;">
+            style="cursor: pointer; padding: 1px 5px; background: #e7f1ff; border: 1px solid #b3d7ff; border-radius: 6px; min-width: 30px; text-align: center; display: inline-block;">
             <span id="teamNameShort" style="font-size: 0.85rem; font-weight: bold; color: #0d6efd;">--</span>
           </div>
         </div>
 
-        <!-- Left spacer -->
-        <div class="col"></div>
+        <!-- Center section (grows to fill space) -->
+        <div style="flex: 1 1 auto; display: flex; justify-content: center; gap: 15px;">
+          <!-- Max Overs Display (center, first innings only, clickable) -->
+          <div id="maxOversTopDisplay" onclick="showMaxOversEditModal()"
+            style="cursor: pointer; display: none; text-align: center;">
+            <span style="font-size: 1rem; color: #666;">Max Overs: </span>
+            <span id="maxOversTopValue" style="font-size: 1rem; font-weight: bold; color: #0d6efd;">-</span>
+          </div>
 
-        <!-- Max Overs Display (center, first innings only, clickable) -->
-        <div class="col-auto" id="maxOversTopDisplay" onclick="showMaxOversEditModal()"
-          style="cursor: pointer; display: none; text-align: center;">
-          <span style="font-size: 0.7rem; color: #666;">Max Overs: </span>
-          <span id="maxOversTopValue" style="font-size: 0.8rem; font-weight: bold; color: #0d6efd;">-</span>
+          <!-- Target Display (center, second innings only) -->
+          <div id="targetTopDisplay" style="display: none; text-align: center;">
+            <span style="font-size: 1rem; color: #dc3545;">Require </span>
+            <span id="targetRunsTopValue" style="font-size: 1.2rem; font-weight: bold; color: #dc3545;">-</span>
+            <span style="font-size: 1rem; color: #dc3545;"> runs in </span>
+            <span id="targetBallsTopValue" style="font-size: 1.2rem; font-weight: bold; color: #dc3545;">-</span>
+            <span style="font-size: 1rem; color: #dc3545;"> balls</span>
+          </div>
         </div>
 
-        <!-- Target Display (center, second innings only) -->
-        <div class="col-auto" id="targetTopDisplay" style="display: none; text-align: center;">
-          <span style="font-size: 0.7rem; color: #dc3545;">Require </span>
-          <span id="targetRunsTopValue" style="font-size: 0.8rem; font-weight: bold; color: #dc3545;">-</span>
-          <span style="font-size: 0.7rem; color: #dc3545;"> runs in </span>
-          <span id="targetBallsTopValue" style="font-size: 0.8rem; font-weight: bold; color: #dc3545;">-</span>
-          <span style="font-size: 0.7rem; color: #dc3545;"> balls</span>
-        </div>
-
-        <!-- Right spacer -->
-        <div class="col"></div>
-
-        <!-- Refresh Icon (right) -->
-        <div class="col-auto">
+        <!-- Refresh Icon (right) - Always stays on right -->
+        <div style="flex: 0 0 auto; text-align: right;">
           <button type="button" class="btn btn-link" data-bs-toggle="modal" data-bs-target="#refreshModal"
             style="font-size: 1.2rem; padding: 0; text-decoration: none; line-height: 1;" title="New Match">🔄</button>
         </div>
