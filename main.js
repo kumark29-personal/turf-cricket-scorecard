@@ -332,7 +332,17 @@ function getMatchById(matchId) {
 	}
 }
 
+// Loader helper functions
+function showLoader() {
+	$("#pageLoader").fadeIn(200);
+}
+
+function hideLoader() {
+	$("#pageLoader").fadeOut(300);
+}
+
 function showMatchHistory() {
+	showLoader();
 	const history = getMatchHistory();
 	const modalBody = document.getElementById('matchHistoryModalBody');
 
@@ -490,7 +500,10 @@ function showMatchHistory() {
 	}
 
 	// Show the modal
-	$('#historyModal').modal('show');
+	setTimeout(() => {
+		$('#historyModal').modal('show');
+		hideLoader();
+	}, 100);
 }
 
 function deleteMatch(matchId) {
@@ -519,6 +532,7 @@ function deleteMatch(matchId) {
 }
 
 function showMatchDetails(matchId) {
+	showLoader();
 	const match = getMatchById(matchId);
 
 	if (!match) {
@@ -652,6 +666,7 @@ function showMatchDetails(matchId) {
 	setTimeout(() => {
 		const detailsModal = new bootstrap.Modal(document.getElementById('matchDetailsModal'));
 		detailsModal.show();
+		hideLoader();
 	}, 300);
 }
 
@@ -670,6 +685,7 @@ function backToMatchHistory() {
 }
 
 function downloadMatchPDF(matchId) {
+	showLoader();
 	try {
 		const { jsPDF } = window.jspdf;
 		const doc = new jsPDF();
@@ -815,9 +831,11 @@ function downloadMatchPDF(matchId) {
 		});
 
 		doc.save(`${match.matchName.replace(/\s+/g, '_')}_Scorecard.pdf`);
+		hideLoader();
 	} catch (e) {
 		console.error('Error generating PDF:', e);
 		alert('Error generating PDF. Please ensure all libraries are loaded.');
+		hideLoader();
 	}
 }
 
@@ -1798,6 +1816,7 @@ function checkMaxOversComplete() {
 }
 
 function prepareSecondInnings(targetRuns, targetOvers) {
+	showLoader();
 	// Save 1st innings to history
 	saveMatchToHistory('1st');
 
@@ -1820,8 +1839,10 @@ function prepareSecondInnings(targetRuns, targetOvers) {
 	// Clear current match data
 	localStorage.removeItem('cricketMatchData');
 
-	// Reload page to start fresh 2nd innings
-	location.reload();
+	// Reload page to start fresh 2nd innings (delay to show loader)
+	setTimeout(() => {
+		location.reload();
+	}, 300);
 }
 
 function resetTargetModal() {
@@ -1861,6 +1882,7 @@ function setTargetForCurrentMatch() {
 }
 
 function startSecondInnings() {
+	showLoader();
 	// Get target values from inputs
 	const secondInningsTarget = parseInt($("#targetRuns").val());
 	const secondInningsOvers = parseInt($("#targetOvers").val());
@@ -1879,7 +1901,7 @@ function startSecondInnings() {
 	battingTeamName = bowlingTeamName;
 	bowlingTeamName = temp;
 
-	// Capture start time for second innings
+	// Save start time for second innings
 	const secondInningsStartTime = Date.now();
 
 	// Save target data to localStorage for restoration after reload
@@ -1899,8 +1921,10 @@ function startSecondInnings() {
 	matchStartTime = secondInningsStartTime; // Set start time (will be lost on reload but saved in secondInningsData)
 	matchEndTime = null; // Clear end time
 
-	// Reload page to start fresh 2nd innings
-	location.reload();
+	// Reload page to start fresh 2nd innings (delay to show loader)
+	setTimeout(() => {
+		location.reload();
+	}, 300);
 }
 
 function setTarget(isTargetModeOn = true) {
