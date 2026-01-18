@@ -1406,7 +1406,7 @@ function update_score() {
 	}
 
 	let score = 0;
-	let wickets = 0;
+	wickets = 0; // Reset global wickets variable (was incorrectly using 'let wickets' which shadowed the global)
 
 	for (i = 1; i <= over_no; i++) {
 		let numOr0 = (n) => (n == "+" ? 1 : isNaN(n) ? 0 : n);
